@@ -100,13 +100,55 @@ If using Android Studio, select `app` and run the debug build from the IDE.
 
 ## Install And Enable
 
-1. Build and install the debug APK on the Android phone.
-2. Open AntSKIP.
-3. Tap `Abrir acessibilidade`.
-4. Enable the `AntSKIP` accessibility service.
-5. Keep Crunchyroll enabled and choose the skip actions you want.
+For manual installation from GitHub, download the signed test APK from the
+latest release:
+
+```text
+AntSKIP-v1.0-test-signed.apk
+```
+
+Do not install `app-release-unsigned.apk` directly. It is not signed and Android
+will reject it.
+
+1. Download `AntSKIP-v1.0-test-signed.apk` on the Android phone.
+2. Open the downloaded APK and allow installation from unknown sources if Android asks.
+3. Open AntSKIP.
+4. Tap `Abrir acessibilidade`.
+5. Enable the `AntSKIP` accessibility service.
+6. Keep Crunchyroll enabled and choose the skip actions you want.
 
 Android requires accessibility permission to be enabled manually by the user.
+
+### Restricted Settings
+
+On recent Android versions, sideloaded apps can show this message in
+accessibility settings:
+
+```text
+Controlada pelas configuracoes restritas
+```
+
+To allow AntSKIP accessibility access:
+
+1. Open Android `Configuracoes`.
+2. Go to `Apps`.
+3. Select `AntSKIP`.
+4. Open the three-dot menu in the top-right corner.
+5. Tap `Permitir configuracoes restritas`.
+6. Confirm with PIN, password or biometrics if Android asks.
+7. Return to `Configuracoes > Acessibilidade`.
+8. Enable the `AntSKIP` accessibility service.
+
+After enabling the service, open Crunchyroll and test an episode that exposes a
+skip button such as `Pular abertura`.
+
+### Local Debug Install
+
+When building locally, Android Studio or Gradle can install the debug APK:
+
+```powershell
+gradle :app:assembleDebug
+```
 
 ## Extending Providers
 
