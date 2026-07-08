@@ -65,8 +65,10 @@ class PreferenceStore(context: Context) {
         preferences.edit()
             .putBoolean(KEY_AUTOMATION_ENABLED, true)
             .putBoolean(StreamingProvider.CRUNCHYROLL.preferenceKey, true)
+            .putBoolean(StreamingProvider.NETFLIX.preferenceKey, true)
             .putBoolean(SkipAction.INTRO.preferenceKey, true)
             .putBoolean(providerActionKey(StreamingProvider.CRUNCHYROLL, SkipAction.INTRO), true)
+            .putBoolean(providerActionKey(StreamingProvider.NETFLIX, SkipAction.INTRO), true)
             .putInt(KEY_MIGRATION_VERSION, CURRENT_MIGRATION_VERSION)
             .apply()
     }
@@ -76,7 +78,7 @@ class PreferenceStore(context: Context) {
         const val KEY_AUTOMATION_ENABLED = "automation_enabled"
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
         const val KEY_MIGRATION_VERSION = "migration_version"
-        const val CURRENT_MIGRATION_VERSION = 2
+        const val CURRENT_MIGRATION_VERSION = 3
 
         val DEFAULT_BLOCKED_PHRASES = setOf(
             "assistir do inicio",

@@ -28,11 +28,11 @@ class AntSkipAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
         try {
             val match = matcher.findTarget(root, provider)
-            if (match?.target?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {
+            if (match?.targets?.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) } == true) {
                 lastClickAtMillis = now
                 showSkipToast(match.action)
             }
-            match?.target?.recycle()
+            match?.targets?.forEach { it.recycle() }
         } finally {
             root.recycle()
         }

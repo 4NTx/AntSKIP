@@ -11,7 +11,7 @@ class SkipMatcher(
     private val phraseBank: SkipPhraseBank = SkipPhraseBank,
 ) {
     data class MatchResult(
-        val target: AccessibilityNodeInfo,
+        val targets: List<AccessibilityNodeInfo>,
         val action: SkipAction,
     )
 
@@ -32,10 +32,10 @@ class SkipMatcher(
             }
             val action = matchAction(nodeText, provider)
             if (action != null && isActionAllowed(action, provider)) {
-                val clickable = node.nearestClickable(provider, rootBounds)
+                val targets = node.clickCandidates(provider, rootBounds)
                 node.recycle()
                 pending.recycleAll()
-                return clickable?.let { MatchResult(it, action) }
+                return targets.takeIf { it.isNotEmpty() }?.let { MatchResult(it, action) }
             }
 
             addChildren(node, pending)
@@ -73,24 +73,27 @@ class SkipMatcher(
                 .any { phrase -> text == phrase || text.contains(phrase) }
         }
 
-    private fun AccessibilityNodeInfo.nearestClickable(
+    private fun AccessibilityNodeInfo.clickCandidates(
         provider: StreamingProvider,
         rootBounds: Rect,
-    ): AccessibilityNodeInfo? {
+    ): List<AccessibilityNodeInfo> {
+        val clickableTargets = mutableListOf<AccessibilityNodeInfo>()
+        val actionTargets = mutableListOf<AccessibilityNodeInfo>()
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
         while (current != null) {
-            if (current.isEnabled &&
-                current.isVisibleToUser &&
-                current.isClickable &&
-                current.isValidClickTarget(provider, rootBounds)
-            ) {
-                return current
+            if (current.isEnabled && current.isVisibleToUser && current.isValidClickTarget(provider, rootBounds)) {
+                when {
+                    current.isClickable -> clickableTargets.add(AccessibilityNodeInfo.obtain(current))
+                    provider != StreamingProvider.CRUNCHYROLL && current.hasClickAction() -> {
+                        actionTargets.add(AccessibilityNodeInfo.obtain(current))
+                    }
+                }
             }
             val parent = current.parent
             current.recycle()
             current = parent
         }
-        return null
+        return clickableTargets + actionTargets
     }
 
     private fun AccessibilityNodeInfo.isValidClickTarget(provider: StreamingProvider, rootBounds: Rect): Boolean {
@@ -101,6 +104,9 @@ class SkipMatcher(
         return bounds.width() <= rootBounds.width() * MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO &&
             bounds.height() <= rootBounds.height() * MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO
     }
+
+    private fun AccessibilityNodeInfo.hasClickAction(): Boolean =
+        actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
 
     private fun addChildren(node: AccessibilityNodeInfo, pending: ArrayDeque<AccessibilityNodeInfo>) {
         repeat(node.childCount) { index ->
