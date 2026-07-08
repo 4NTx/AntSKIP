@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AntSKIP</string>
+    <string name="accessibility_service_label">AntSKIP</string>
+    <string name="accessibility_service_description">Toca automaticamente em botoes de pular nos apps de streaming selecionados quando eles aparecem.</string>
+</resources>
