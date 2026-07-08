@@ -26,7 +26,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
         try {
             val match = matcher.findTarget(root, provider)
-            if (match != null && (tapFirstValidBound(match.tapBounds) || clickFirstValidTarget(match.targets))) {
+            if (match != null && (clickFirstValidTarget(match.targets) || tapFirstValidBound(match.tapBounds))) {
                 lastClickAtMillis = now
             }
             match?.targets?.forEach { it.recycle() }
@@ -37,8 +37,20 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
-    private fun tapFirstValidBound(bounds: List<Rect>): Boolean =
-        bounds.firstOrNull { it.centerX() > 0 && it.centerY() > 0 }?.let { rect ->
+    private fun tapFirstValidBound(bounds: List<Rect>): Boolean {
+        val metrics = resources.displayMetrics
+        val maxTapWidth = (metrics.widthPixels * MAX_TAP_WIDTH_RATIO).toInt()
+        val maxTapHeight = (metrics.heightPixels * MAX_TAP_HEIGHT_RATIO).toInt()
+        val tapTarget = bounds
+            .filter { rect ->
+                rect.centerX() > 0 &&
+                    rect.centerY() > 0 &&
+                    rect.width() <= maxTapWidth &&
+                    rect.height() <= maxTapHeight
+            }
+            .minByOrNull { rect -> rect.width().toLong() * rect.height().toLong() }
+
+        return tapTarget?.let { rect ->
             val path = Path().apply {
                 moveTo(rect.centerX().toFloat(), rect.centerY().toFloat())
             }
@@ -47,6 +59,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
                 .build()
             dispatchGesture(gesture, null, null)
         } == true
+    }
 
     private fun clickFirstValidTarget(targets: List<AccessibilityNodeInfo>): Boolean =
         targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
@@ -54,5 +67,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
     private companion object {
         const val CLICK_COOLDOWN_MS = 3_000L
         const val TAP_DURATION_MS = 80L
+        const val MAX_TAP_WIDTH_RATIO = 0.75f
+        const val MAX_TAP_HEIGHT_RATIO = 0.35f
     }
 }

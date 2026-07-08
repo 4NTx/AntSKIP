@@ -67,17 +67,21 @@ class SkipMatcher(
             .any { phrase -> text == phrase || text.contains(phrase) }
 
     private fun AccessibilityNodeInfo.clickCandidates(): List<AccessibilityNodeInfo> {
-        val targets = mutableListOf<AccessibilityNodeInfo>()
+        val clickableTargets = mutableListOf<AccessibilityNodeInfo>()
+        val actionTargets = mutableListOf<AccessibilityNodeInfo>()
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
         while (current != null) {
-            if (current.isEnabled && current.isVisibleToUser && current.canClick()) {
-                targets.add(AccessibilityNodeInfo.obtain(current))
+            if (current.isEnabled && current.isVisibleToUser) {
+                when {
+                    current.isClickable -> clickableTargets.add(AccessibilityNodeInfo.obtain(current))
+                    current.hasClickAction() -> actionTargets.add(AccessibilityNodeInfo.obtain(current))
+                }
             }
             val parent = current.parent
             current.recycle()
             current = parent
         }
-        return targets
+        return clickableTargets + actionTargets
     }
 
     private fun AccessibilityNodeInfo.tapBounds(): List<Rect> {
@@ -98,7 +102,7 @@ class SkipMatcher(
         return bounds.distinctBy { "${it.left},${it.top},${it.right},${it.bottom}" }
     }
 
-    private fun AccessibilityNodeInfo.canClick(): Boolean =
+    private fun AccessibilityNodeInfo.hasClickAction(): Boolean =
         isClickable || actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
 
     private fun addChildren(node: AccessibilityNodeInfo, pending: ArrayDeque<AccessibilityNodeInfo>) {
