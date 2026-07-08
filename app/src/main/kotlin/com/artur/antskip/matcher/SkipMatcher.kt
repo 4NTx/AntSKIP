@@ -10,7 +10,7 @@ class SkipMatcher(
     private val phraseBank: SkipPhraseBank = SkipPhraseBank,
 ) {
     data class MatchResult(
-        val target: AccessibilityNodeInfo,
+        val targets: List<AccessibilityNodeInfo>,
         val action: SkipAction,
     )
 
@@ -29,10 +29,10 @@ class SkipMatcher(
             } else {
                 val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
                 if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
-                    val clickable = node.nearestClickable()
+                    val targets = node.clickCandidates()
                     node.recycle()
                     pending.recycleAll()
-                    return clickable?.let { MatchResult(it, action) }
+                    return targets.takeIf { it.isNotEmpty() }?.let { MatchResult(it, action) }
                 }
 
                 addChildren(node, pending)
@@ -59,17 +59,18 @@ class SkipMatcher(
             .filter { it.isNotBlank() }
             .any { phrase -> text == phrase || text.contains(phrase) }
 
-    private fun AccessibilityNodeInfo.nearestClickable(): AccessibilityNodeInfo? {
+    private fun AccessibilityNodeInfo.clickCandidates(): List<AccessibilityNodeInfo> {
+        val targets = mutableListOf<AccessibilityNodeInfo>()
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
         while (current != null) {
             if (current.isEnabled && current.isVisibleToUser && current.canClick()) {
-                return current
+                targets.add(AccessibilityNodeInfo.obtain(current))
             }
             val parent = current.parent
             current.recycle()
             current = parent
         }
-        return null
+        return targets
     }
 
     private fun AccessibilityNodeInfo.canClick(): Boolean =
