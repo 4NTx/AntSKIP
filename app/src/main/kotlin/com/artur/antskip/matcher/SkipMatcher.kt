@@ -1,6 +1,5 @@
 package com.artur.antskip.matcher
 
-import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
@@ -11,8 +10,7 @@ class SkipMatcher(
     private val phraseBank: SkipPhraseBank = SkipPhraseBank,
 ) {
     data class MatchResult(
-        val targets: List<AccessibilityNodeInfo>,
-        val tapBounds: List<Rect>,
+        val target: AccessibilityNodeInfo,
         val action: SkipAction,
     )
 
@@ -26,25 +24,15 @@ class SkipMatcher(
             visited++
 
             val nodeText = NodeText.from(node)
-            if (isBlocked(nodeText)) {
-                addChildren(node, pending)
-            } else {
-                val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
-                if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
-                    val targets = node.clickCandidates()
-                    val bounds = node.tapBounds()
-                    node.recycle()
-                    pending.recycleAll()
-                    return if (targets.isNotEmpty() || bounds.isNotEmpty()) {
-                        MatchResult(targets, bounds, action)
-                    } else {
-                        null
-                    }
-                }
-
-                addChildren(node, pending)
+            val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
+            if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
+                val clickable = node.nearestClickable()
+                node.recycle()
+                pending.recycleAll()
+                return clickable?.let { MatchResult(it, action) }
             }
 
+            addChildren(node, pending)
             node.recycle()
         }
 
@@ -60,50 +48,18 @@ class SkipMatcher(
                 .any { phrase -> text == phrase || text.contains(phrase) }
         }
 
-    private fun isBlocked(text: String): Boolean =
-        preferences.blockedPhrases()
-            .map { it.normalizeForMatch() }
-            .filter { it.isNotBlank() }
-            .any { phrase -> text == phrase || text.contains(phrase) }
-
-    private fun AccessibilityNodeInfo.clickCandidates(): List<AccessibilityNodeInfo> {
-        val clickableTargets = mutableListOf<AccessibilityNodeInfo>()
-        val actionTargets = mutableListOf<AccessibilityNodeInfo>()
+    private fun AccessibilityNodeInfo.nearestClickable(): AccessibilityNodeInfo? {
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
         while (current != null) {
-            if (current.isEnabled && current.isVisibleToUser) {
-                when {
-                    current.isClickable -> clickableTargets.add(AccessibilityNodeInfo.obtain(current))
-                    current.hasClickAction() -> actionTargets.add(AccessibilityNodeInfo.obtain(current))
-                }
+            if (current.isEnabled && current.isVisibleToUser && current.isClickable) {
+                return current
             }
             val parent = current.parent
             current.recycle()
             current = parent
         }
-        return clickableTargets + actionTargets
+        return null
     }
-
-    private fun AccessibilityNodeInfo.tapBounds(): List<Rect> {
-        val bounds = mutableListOf<Rect>()
-        var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
-        while (current != null) {
-            if (current.isEnabled && current.isVisibleToUser) {
-                val rect = Rect()
-                current.getBoundsInScreen(rect)
-                if (!rect.isEmpty && rect.width() >= MIN_TAP_SIZE && rect.height() >= MIN_TAP_SIZE) {
-                    bounds.add(rect)
-                }
-            }
-            val parent = current.parent
-            current.recycle()
-            current = parent
-        }
-        return bounds.distinctBy { "${it.left},${it.top},${it.right},${it.bottom}" }
-    }
-
-    private fun AccessibilityNodeInfo.hasClickAction(): Boolean =
-        isClickable || actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
 
     private fun addChildren(node: AccessibilityNodeInfo, pending: ArrayDeque<AccessibilityNodeInfo>) {
         repeat(node.childCount) { index ->
@@ -119,6 +75,5 @@ class SkipMatcher(
 
     private companion object {
         const val MAX_VISITED_NODES = 300
-        const val MIN_TAP_SIZE = 12
     }
 }
