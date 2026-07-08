@@ -68,7 +68,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.1-test-signed.apk
+AntSKIP-v1.2-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android
@@ -84,6 +84,20 @@ will reject it.
 
 When AntSKIP successfully taps a button, Android shows a short message on the
 screen, such as `Pulando abertura`.
+
+## Recommended First Test
+
+For the first test, use the safest configuration:
+
+1. Keep `Automation` enabled.
+2. Keep only `Netflix` or `Crunchyroll` enabled.
+3. In `Per-app rules`, enable only `Intros/openings` for that app.
+4. Play an episode that shows a visible skip-intro button.
+5. Confirm that Android shows `Pulando abertura`.
+
+After that works, enable `Recaps/summaries`, `Credits/endings`, or
+`Next episode` one at a time. `Next episode` is intentionally the riskiest
+action because some apps use generic labels such as `Next` or `Proximo`.
 
 ## Restricted Settings
 
@@ -135,6 +149,9 @@ Next Episode
 
 Custom phrases are stored locally in Android `SharedPreferences`.
 
+If the same phrase is saved more than once, AntSKIP keeps only one copy. This is
+intentional and does not create duplicate clicks.
+
 ## Per-App Rules
 
 Global actions are only the default behavior. AntSKIP can also configure every
@@ -168,6 +185,49 @@ Details
 Use `Lista de bloqueio` in the app UI to add one phrase per line. Blocked
 phrases are checked before skip phrases, so the blocklist wins even if another
 phrase would normally match.
+
+Good blocklist candidates are labels that should never be tapped automatically,
+especially if they can appear near a player:
+
+```text
+Watch from beginning
+Restart episode
+Play trailer
+More information
+Manage profiles
+```
+
+## Troubleshooting
+
+### The accessibility service is blocked
+
+If Android says the service is controlled by restricted settings, unlock it from
+the AntSKIP app info screen:
+
+```text
+Settings > Apps > AntSKIP > three-dot menu > Allow restricted settings
+```
+
+Then return to:
+
+```text
+Settings > Accessibility > AntSKIP
+```
+
+### The button appears but AntSKIP does not tap it
+
+- Confirm the streaming app is enabled in AntSKIP.
+- Confirm the action is enabled in `Per-app rules`.
+- Add the exact visible label in `Custom phrases`.
+- Check the blocklist. If the same label, or part of it, is blocked, AntSKIP
+  will not tap it.
+
+### AntSKIP taps the wrong button
+
+- Disable that action for the affected app in `Per-app rules`.
+- Add the wrong button label to the blocklist.
+- Avoid generic custom phrases such as `Next` unless they are scoped to a trusted
+  provider through per-app rules.
 
 ## Known Limits
 
