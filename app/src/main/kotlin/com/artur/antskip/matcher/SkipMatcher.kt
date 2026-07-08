@@ -3,6 +3,7 @@ package com.artur.antskip.matcher
 import android.view.accessibility.AccessibilityNodeInfo
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
+import com.artur.antskip.domain.StreamingProvider
 
 class SkipMatcher(
     private val preferences: PreferenceStore,
@@ -13,7 +14,7 @@ class SkipMatcher(
         val action: SkipAction,
     )
 
-    fun findTarget(root: AccessibilityNodeInfo): MatchResult? {
+    fun findTarget(root: AccessibilityNodeInfo, provider: StreamingProvider): MatchResult? {
         var visited = 0
         val pending = ArrayDeque<AccessibilityNodeInfo>()
         pending.add(AccessibilityNodeInfo.obtain(root))
@@ -23,8 +24,13 @@ class SkipMatcher(
             visited++
 
             val nodeText = NodeText.from(node)
+            if (isBlocked(nodeText)) {
+                node.recycle()
+                pending.recycleAll()
+                return null
+            }
             val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
-            if (action != null && preferences.isActionEnabled(action)) {
+            if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
                 val clickable = node.nearestClickable()
                 node.recycle()
                 pending.recycleAll()
@@ -39,7 +45,7 @@ class SkipMatcher(
 
         pending.recycleAll()
         return null
-    }
+        }
 
     private fun matchCustomPhrase(text: String): SkipAction? =
         SkipAction.entries.firstOrNull { action ->
@@ -48,6 +54,12 @@ class SkipMatcher(
                 .filter { it.isNotBlank() }
                 .any { phrase -> text == phrase || text.contains(phrase) }
         }
+
+    private fun isBlocked(text: String): Boolean =
+        preferences.blockedPhrases()
+            .map { it.normalizeForMatch() }
+            .filter { it.isNotBlank() }
+            .any { phrase -> text == phrase || text.contains(phrase) }
 
     private fun AccessibilityNodeInfo.nearestClickable(): AccessibilityNodeInfo? {
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)

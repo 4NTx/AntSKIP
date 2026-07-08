@@ -22,8 +22,11 @@ click when a matching button appears.
   automatic tap.
 - Lets users enable or disable each streaming app independently.
 - Lets users enable or disable each skip action independently.
+- Supports per-app action rules. For example, `Next episode` can be enabled for
+  Netflix and disabled for Prime Video.
 - Supports custom phrases per action, so users can teach the app labels from
   any language or app version.
+- Supports a blocklist of phrases that AntSKIP must never click.
 - Normalizes accents and casing before matching. For example, `Próximo`,
   `proximo`, and `PROXIMO` are treated the same.
 - Uses a cooldown after each tap to avoid repeated clicks.
@@ -132,6 +135,40 @@ Next Episode
 
 Custom phrases are stored locally in Android `SharedPreferences`.
 
+## Per-App Rules
+
+Global actions are only the default behavior. AntSKIP can also configure every
+action separately for every streaming app.
+
+Use `Regras por app` in the app UI to decide which actions are allowed for each
+provider. This is the safest way to reduce false positives.
+
+Examples:
+
+- Enable `Next episode` for Netflix.
+- Disable `Next episode` for Prime Video.
+- Enable only `Intros/openings` while testing a new provider.
+- Keep experimental providers disabled until you confirm their labels.
+
+If a per-app rule is changed, it overrides the global default for that provider.
+
+## Blocklist
+
+The blocklist prevents AntSKIP from clicking buttons that contain dangerous or
+unwanted phrases. The default blocklist includes examples such as:
+
+```text
+Watch from beginning
+Restart
+Trailer
+More info
+Details
+```
+
+Use `Lista de bloqueio` in the app UI to add one phrase per line. Blocked
+phrases are checked before skip phrases, so the blocklist wins even if another
+phrase would normally match.
+
 ## Known Limits
 
 - AntSKIP can only tap buttons that the streaming app exposes to Android
@@ -140,7 +177,9 @@ Custom phrases are stored locally in Android `SharedPreferences`.
 - Streaming apps can change labels, package names, or accessibility behavior at
   any time.
 - Next-episode prompts can behave differently for movies, specials, and final
-  episodes. Disable `Proximo episodio` if you prefer to manually watch endings.
+  episodes. Disable `Next episode` for that app if you prefer to manually watch endings.
+- Very generic phrases such as `Next` or `Proximo` can be risky. Prefer per-app
+  rules and blocklist phrases when testing.
 - The app currently supports one package name per provider. Forks, TV builds, or
   region-specific variants may need another package entry.
 

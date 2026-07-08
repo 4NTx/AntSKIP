@@ -26,7 +26,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
         val root = rootInActiveWindow ?: return
         try {
-            val match = matcher.findTarget(root)
+            val match = matcher.findTarget(root, provider)
             if (match?.target?.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK) == true) {
                 lastClickAtMillis = now
                 showSkipToast(match.action)

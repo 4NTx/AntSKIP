@@ -52,7 +52,9 @@ class MainActivity : Activity() {
         content.addView(setupPanel())
         content.addView(providerPanel())
         content.addView(actionPanel())
+        content.addView(providerRulesPanel())
         content.addView(customPhrasePanel())
+        content.addView(blockListPanel())
         content.addView(privacyNote())
 
         return ScrollView(this).apply { addView(content) }
@@ -74,7 +76,14 @@ class MainActivity : Activity() {
     private fun statusPanel(): LinearLayout {
         val enabled = isAccessibilityServiceEnabled()
         return panel().apply {
-            addView(rowTitle("Status", if (enabled) "Acessibilidade ativa" else "Precisa ativar"))
+            addView(
+                rowTitle(
+                    "Status",
+                    if (enabled) "Acessibilidade ativa" else "Precisa ativar",
+                    if (enabled) SUCCESS_DARK else ACCENT_DARK,
+                    if (enabled) SUCCESS_SOFT else ACCENT_SOFT,
+                ),
+            )
             addView(
                 text(
                     if (enabled) {
@@ -126,7 +135,14 @@ class MainActivity : Activity() {
         }
 
     private fun actionPanel(): LinearLayout =
-        panel("O que pular").apply {
+        panel("Padroes globais").apply {
+            addView(
+                text(
+                    "Estas opcoes servem como padrao. Em Regras por app voce pode mudar cada acao para cada streaming.",
+                    14,
+                    color = TEXT_MUTED,
+                ).withPadding(bottom = 8),
+            )
             SkipAction.entries.forEach { action ->
                 addView(
                     switchRow(action.label, action.description, preferences.isActionEnabled(action)) {
@@ -136,11 +152,25 @@ class MainActivity : Activity() {
             }
         }
 
+    private fun providerRulesPanel(): LinearLayout =
+        panel("Regras por app").apply {
+            addView(
+                text(
+                    "Use para reduzir falsos positivos. Ex.: deixar Proximo episodio ligado na Netflix e desligado no Prime Video.",
+                    14,
+                    color = TEXT_MUTED,
+                ).withPadding(bottom = 10),
+            )
+            StreamingProvider.entries.forEach { provider ->
+                addView(secondaryButton("Configurar ${provider.label}") { showProviderRules(provider) }.withTopMargin(8))
+            }
+        }
+
     private fun customPhrasePanel(): LinearLayout =
         panel("Ensinar frases").apply {
             addView(
                 text(
-                    "Se um app mostrar outro texto, adicione aqui exatamente como aparece. Uma frase por linha.",
+                    "Adicione textos que ainda nao existem no banco do AntSKIP. Se repetir uma frase, ela fica salva apenas uma vez.",
                     14,
                     color = TEXT_MUTED,
                 ).withPadding(bottom = 10),
@@ -148,6 +178,18 @@ class MainActivity : Activity() {
             SkipAction.entries.forEach { action ->
                 addView(secondaryButton("Editar frases: ${action.label}") { showPhraseEditor(action) }.withTopMargin(8))
             }
+        }
+
+    private fun blockListPanel(): LinearLayout =
+        panel("Lista de bloqueio").apply {
+            addView(
+                text(
+                    "Se qualquer texto do botao tiver uma destas frases, o AntSKIP nao clica. Uma frase por linha.",
+                    14,
+                    color = TEXT_MUTED,
+                ).withPadding(bottom = 10),
+            )
+            addView(secondaryButton("Editar frases bloqueadas") { showBlockListEditor() })
         }
 
     private fun privacyNote(): TextView =
@@ -167,7 +209,7 @@ class MainActivity : Activity() {
 
         AlertDialog.Builder(this)
             .setTitle("Frases para ${action.label}")
-            .setMessage("Uma frase por linha. O AntSKIP ignora acentos e maiusculas.")
+            .setMessage("Uma frase por linha. Frases repetidas sao removidas ao salvar. O AntSKIP tambem ignora acentos e maiusculas.")
             .setView(input)
             .setPositiveButton("Salvar") { _, _ ->
                 val phrases = input.text
@@ -182,6 +224,56 @@ class MainActivity : Activity() {
             .show()
     }
 
+    private fun showProviderRules(provider: StreamingProvider) {
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), 0, dp(4), 0)
+        }
+        SkipAction.entries.forEach { action ->
+            list.addView(
+                switchRow(
+                    action.label,
+                    action.description,
+                    preferences.isActionEnabledForProvider(provider, action),
+                ) {
+                    preferences.setActionEnabledForProvider(provider, action, it)
+                },
+            )
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Regras: ${provider.label}")
+            .setMessage("Estas regras valem so para este app.")
+            .setView(ScrollView(this).apply { addView(list) })
+            .setPositiveButton("Fechar") { _, _ -> render() }
+            .show()
+    }
+
+    private fun showBlockListEditor() {
+        val input = EditText(this).apply {
+            setText(preferences.blockedPhrases().joinToString("\n"))
+            minLines = 7
+            gravity = Gravity.TOP
+            hint = "Ex.: Trailer\nReiniciar\nMais informacoes"
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Frases bloqueadas")
+            .setMessage("O AntSKIP nunca clica em botoes que contenham estas frases.")
+            .setView(input)
+            .setPositiveButton("Salvar") { _, _ ->
+                val phrases = input.text
+                    .lineSequence()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                    .toCollection(linkedSetOf())
+                preferences.setBlockedPhrases(phrases)
+                render()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
     private fun switchRow(
         title: String,
         description: String,
@@ -189,27 +281,30 @@ class MainActivity : Activity() {
         onChanged: (Boolean) -> Unit,
     ): LinearLayout =
         LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
             setPadding(0, dp(10), 0, dp(10))
 
-            val copy = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                addView(text(title, 16, bold = true, color = TEXT_DARK))
-                addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 3))
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            val topRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(
+                    text(title, 16, bold = true, color = TEXT_DARK).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                    },
+                )
+                addView(
+                    Switch(context).apply {
+                        isChecked = checked
+                        setOnCheckedChangeListener { _, value -> onChanged(value) }
+                    },
+                )
             }
 
-            addView(copy)
-            addView(
-                Switch(context).apply {
-                    isChecked = checked
-                    setOnCheckedChangeListener { _, value -> onChanged(value) }
-                },
-            )
+            addView(topRow)
+            addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 3))
         }
 
-    private fun rowTitle(title: String, badge: String): LinearLayout =
+    private fun rowTitle(title: String, badge: String, badgeTextColor: Int, badgeBackgroundColor: Int): LinearLayout =
         LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             addView(
@@ -218,9 +313,9 @@ class MainActivity : Activity() {
                 },
             )
             addView(
-                text(badge, 12, bold = true, color = ACCENT_DARK).apply {
+                text(badge, 12, bold = true, color = badgeTextColor).apply {
                     setPadding(dp(10), dp(5), dp(10), dp(5))
-                    background = rounded(ACCENT_SOFT, dp(16))
+                    background = rounded(badgeBackgroundColor, dp(16))
                 },
             )
         }
@@ -322,6 +417,8 @@ class MainActivity : Activity() {
         const val ACCENT = 0xFFF47521.toInt()
         const val ACCENT_DARK = 0xFFB84A0D.toInt()
         const val ACCENT_SOFT = 0xFFFFE9DC.toInt()
+        const val SUCCESS_DARK = 0xFF127A3A.toInt()
+        const val SUCCESS_SOFT = 0xFFE1F6E8.toInt()
         const val STROKE = 0xFFE3E7ED.toInt()
     }
 }
