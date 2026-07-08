@@ -25,21 +25,19 @@ class SkipMatcher(
 
             val nodeText = NodeText.from(node)
             if (isBlocked(nodeText)) {
-                node.recycle()
-                pending.recycleAll()
-                return null
-            }
-            val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
-            if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
-                val clickable = node.nearestClickable()
-                node.recycle()
-                pending.recycleAll()
-                return clickable?.let { MatchResult(it, action) }
+                addChildren(node, pending)
+            } else {
+                val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
+                if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
+                    val clickable = node.nearestClickable()
+                    node.recycle()
+                    pending.recycleAll()
+                    return clickable?.let { MatchResult(it, action) }
+                }
+
+                addChildren(node, pending)
             }
 
-            repeat(node.childCount) { index ->
-                node.getChild(index)?.let { pending.add(it) }
-            }
             node.recycle()
         }
 
@@ -76,6 +74,12 @@ class SkipMatcher(
 
     private fun AccessibilityNodeInfo.canClick(): Boolean =
         isClickable || actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
+
+    private fun addChildren(node: AccessibilityNodeInfo, pending: ArrayDeque<AccessibilityNodeInfo>) {
+        repeat(node.childCount) { index ->
+            node.getChild(index)?.let { pending.add(it) }
+        }
+    }
 
     private fun ArrayDeque<AccessibilityNodeInfo>.recycleAll() {
         while (isNotEmpty()) {
