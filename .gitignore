@@ -12,8 +12,11 @@ local.properties
 *.apk
 *.aab
 *.ap_
+*.idsig
+*.jks
 
 # Kotlin
+.kotlin/
 *.kotlin_module
 
 # OS

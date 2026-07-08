@@ -5,10 +5,50 @@ enum class StreamingProvider(
     val label: String,
     val packageName: String,
     val enabledByDefault: Boolean,
+    val description: String,
 ) {
-    CRUNCHYROLL("provider_crunchyroll_enabled", "Crunchyroll", "com.crunchyroll.crunchyroid", true),
-    NETFLIX("provider_netflix_enabled", "Netflix", "com.netflix.mediaclient", false),
-    PRIME_VIDEO("provider_prime_video_enabled", "Prime Video", "com.amazon.avod.thirdpartyclient", false);
+    CRUNCHYROLL(
+        "provider_crunchyroll_enabled",
+        "Crunchyroll",
+        "com.crunchyroll.crunchyroid",
+        true,
+        "Suporte principal. Tenta tocar em abertura, resumo e creditos.",
+    ),
+    NETFLIX(
+        "provider_netflix_enabled",
+        "Netflix",
+        "com.netflix.mediaclient",
+        true,
+        "Reconhece botoes como Pular abertura, Pular recapitulacao e Proximo episodio.",
+    ),
+    PRIME_VIDEO(
+        "provider_prime_video_enabled",
+        "Prime Video",
+        "com.amazon.avod.thirdpartyclient",
+        false,
+        "Experimental. O app muda bastante e pode precisar de ajuste por aparelho.",
+    ),
+    DISNEY_PLUS(
+        "provider_disney_plus_enabled",
+        "Disney+",
+        "com.disney.disneyplus",
+        false,
+        "Experimental. Depende dos textos expostos pelo app para acessibilidade.",
+    ),
+    MAX(
+        "provider_max_enabled",
+        "Max",
+        "com.wbd.stream",
+        false,
+        "Experimental. Usa os mesmos tipos de skip quando o botao aparece.",
+    ),
+    PARAMOUNT_PLUS(
+        "provider_paramount_plus_enabled",
+        "Paramount+",
+        "com.cbs.app",
+        false,
+        "Experimental. Incluido para teste com botoes de intro e creditos.",
+    );
 
     companion object {
         fun fromPackageName(packageName: String): StreamingProvider? =

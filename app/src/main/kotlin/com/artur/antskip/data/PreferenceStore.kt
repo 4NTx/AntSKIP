@@ -21,12 +21,22 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(action.preferenceKey, enabled).apply()
     }
 
+    fun customPhrases(action: SkipAction): Set<String> =
+        preferences.getStringSet(customPhraseKey(action), emptySet()).orEmpty()
+
+    fun setCustomPhrases(action: SkipAction, phrases: Set<String>) {
+        preferences.edit().putStringSet(customPhraseKey(action), phrases).apply()
+    }
+
     fun isProviderEnabled(provider: StreamingProvider): Boolean =
         preferences.getBoolean(provider.preferenceKey, provider.enabledByDefault)
 
     fun setProviderEnabled(provider: StreamingProvider, enabled: Boolean) {
         preferences.edit().putBoolean(provider.preferenceKey, enabled).apply()
     }
+
+    private fun customPhraseKey(action: SkipAction): String =
+        "custom_phrases_${action.name.lowercase()}"
 
     private companion object {
         const val PREFERENCES_NAME = "antskip"

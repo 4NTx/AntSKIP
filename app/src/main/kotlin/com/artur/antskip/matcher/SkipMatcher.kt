@@ -2,12 +2,18 @@ package com.artur.antskip.matcher
 
 import android.view.accessibility.AccessibilityNodeInfo
 import com.artur.antskip.data.PreferenceStore
+import com.artur.antskip.domain.SkipAction
 
 class SkipMatcher(
     private val preferences: PreferenceStore,
     private val phraseBank: SkipPhraseBank = SkipPhraseBank,
 ) {
-    fun findTarget(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+    data class MatchResult(
+        val target: AccessibilityNodeInfo,
+        val action: SkipAction,
+    )
+
+    fun findTarget(root: AccessibilityNodeInfo): MatchResult? {
         var visited = 0
         val pending = ArrayDeque<AccessibilityNodeInfo>()
         pending.add(AccessibilityNodeInfo.obtain(root))
@@ -16,12 +22,13 @@ class SkipMatcher(
             val node = pending.removeFirst()
             visited++
 
-            val action = phraseBank.match(NodeText.from(node))
+            val nodeText = NodeText.from(node)
+            val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
             if (action != null && preferences.isActionEnabled(action)) {
                 val clickable = node.nearestClickable()
                 node.recycle()
                 pending.recycleAll()
-                return clickable
+                return clickable?.let { MatchResult(it, action) }
             }
 
             repeat(node.childCount) { index ->
@@ -34,10 +41,18 @@ class SkipMatcher(
         return null
     }
 
+    private fun matchCustomPhrase(text: String): SkipAction? =
+        SkipAction.entries.firstOrNull { action ->
+            preferences.customPhrases(action)
+                .map { it.normalizeForMatch() }
+                .filter { it.isNotBlank() }
+                .any { phrase -> text == phrase || text.contains(phrase) }
+        }
+
     private fun AccessibilityNodeInfo.nearestClickable(): AccessibilityNodeInfo? {
         var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
         while (current != null) {
-            if (current.isEnabled && current.isVisibleToUser && current.isClickable) {
+            if (current.isEnabled && current.isVisibleToUser && current.canClick()) {
                 return current
             }
             val parent = current.parent
@@ -46,6 +61,9 @@ class SkipMatcher(
         }
         return null
     }
+
+    private fun AccessibilityNodeInfo.canClick(): Boolean =
+        isClickable || actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
 
     private fun ArrayDeque<AccessibilityNodeInfo>.recycleAll() {
         while (isNotEmpty()) {

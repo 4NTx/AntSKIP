@@ -6,4 +6,4 @@
     android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="500"
-    android:packageNames="com.crunchyroll.crunchyroid,com.netflix.mediaclient,com.amazon.avod.thirdpartyclient" />
+    android:packageNames="com.crunchyroll.crunchyroid,com.netflix.mediaclient,com.amazon.avod.thirdpartyclient,com.disney.disneyplus,com.wbd.stream,com.cbs.app" />

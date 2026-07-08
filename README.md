@@ -6,42 +6,157 @@
 ![License](https://img.shields.io/badge/license-private-lightgrey)
 
 AntSKIP is a lightweight Android accessibility app that automatically taps
-supported "skip" buttons in selected streaming apps. The first supported profile
-is Crunchyroll, with Netflix and Prime Video prepared as disabled provider
-profiles for future app-specific tuning.
+visible skip buttons in supported streaming apps. It is designed for the native
+Android apps, not for browser extensions or modified streaming clients.
 
-## Goals
+The app does not record the screen, inspect video frames, bypass DRM, inject
+code into streaming apps, or interact with network traffic. It only reads
+accessibility text exposed by selected apps and performs a normal accessibility
+click when a matching button appears.
 
-- Skip intros, recaps and credits with minimal overhead.
-- Avoid overlays, screen capture, timers and background polling.
-- Keep all behavior configurable from the app UI.
-- Make provider support easy to extend without changing the accessibility core.
+## Features
 
-## Technologies
+- Automatically skips intros/openings, recaps, credits/endings, previews, and
+  next-episode prompts.
+- Shows an on-screen confirmation such as `Pulando abertura` after a successful
+  automatic tap.
+- Lets users enable or disable each streaming app independently.
+- Lets users enable or disable each skip action independently.
+- Supports custom phrases per action, so users can teach the app labels from
+  any language or app version.
+- Normalizes accents and casing before matching. For example, `Próximo`,
+  `proximo`, and `PROXIMO` are treated the same.
+- Uses a cooldown after each tap to avoid repeated clicks.
+- Runs event-driven through Android Accessibility instead of polling the screen.
 
-- Kotlin
-- Android Accessibility Service
-- Native Android Views
-- Gradle Android Plugin
-- No runtime third-party dependencies
+## Supported Apps
 
-## Current Support
-
-| Provider | Android package | Default | Notes |
+| App | Android package | Default | Status |
 | --- | --- | --- | --- |
-| Crunchyroll | `com.crunchyroll.crunchyroid` | Enabled | Primary target |
-| Netflix | `com.netflix.mediaclient` | Disabled | Profile prepared |
-| Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Profile prepared |
+| Crunchyroll | `com.crunchyroll.crunchyroid` | Enabled | Primary support |
+| Netflix | `com.netflix.mediaclient` | Enabled | Primary support |
+| Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Experimental |
+| Disney+ | `com.disney.disneyplus` | Disabled | Experimental |
+| Max | `com.wbd.stream` | Disabled | Experimental |
+| Paramount+ | `com.cbs.app` | Disabled | Experimental |
 
-## Skip Actions
+Experimental means the app is monitored and the generic skip actions can work
+when the streaming app exposes accessible button text, but it still needs
+device-by-device testing.
 
-| Action | Default | Examples |
+## Supported Skip Actions
+
+| Action | Default | Example labels |
 | --- | --- | --- |
-| Intro/opening | Enabled | `Pular abertura`, `Skip Intro`, `Skip Opening` |
-| Recap/summary | Enabled | `Pular resumo`, `Skip Recap` |
-| Credits/ending | Enabled | `Pular creditos`, `Skip Credits`, `Skip Ending` |
-| Preview | Disabled | `Skip Preview` |
-| Next episode | Disabled | `Next Episode`, `Proximo episodio` |
+| Intros/openings | Enabled | `Pular abertura`, `Skip Intro`, `Skip Opening` |
+| Recaps/summaries | Enabled | `Pular resumo`, `Pular recapitulacao`, `Skip Recap` |
+| Credits/endings | Enabled | `Pular creditos`, `Skip Credits`, `Skip Ending` |
+| Previews | Disabled | `Pular previa`, `Skip Preview`, `Skip Trailer` |
+| Next episode | Enabled | `Proximo`, `Proximo episodio`, `Next Episode`, `Play Next` |
+
+The built-in phrase bank includes common labels in Portuguese, English, Spanish,
+French, German, Italian, Dutch, Polish, Japanese, Korean, Chinese, and Turkish.
+Because streaming apps frequently change their UI text, the in-app custom phrase
+editor is the recommended fallback for missing languages or regional variants.
+
+## Install And Enable
+
+For manual installation from GitHub, download the signed APK from the latest
+release:
+
+```text
+AntSKIP-v1.1-test-signed.apk
+```
+
+Do not install `app-release-unsigned.apk` directly. It is not signed and Android
+will reject it.
+
+1. Download the signed APK on the Android phone.
+2. Open the downloaded APK and allow installation from unknown sources if Android asks.
+3. Open AntSKIP.
+4. Tap `Ativar acessibilidade`.
+5. Enable the `AntSKIP` accessibility service.
+6. Return to AntSKIP and choose the apps and skip actions you want.
+7. Open a supported streaming app and play an episode with a skip button.
+
+When AntSKIP successfully taps a button, Android shows a short message on the
+screen, such as `Pulando abertura`.
+
+## Restricted Settings
+
+Recent Android versions can block accessibility access for sideloaded apps with
+a message similar to:
+
+```text
+Restricted settings
+```
+
+or, in Portuguese:
+
+```text
+Controlada pelas configuracoes restritas
+```
+
+To unlock the accessibility service:
+
+1. Open Android `Settings`.
+2. Go to `Apps`.
+3. Select `AntSKIP`.
+4. Open the three-dot menu in the top-right corner.
+5. Tap `Allow restricted settings`.
+6. Confirm with PIN, password, or biometrics if Android asks.
+7. Return to `Settings > Accessibility`.
+8. Enable the `AntSKIP` accessibility service.
+
+Some Android skins translate or move this option, but it is usually on the app
+info screen for sideloaded apps.
+
+## Custom Phrases
+
+If a button is visible but AntSKIP does not tap it:
+
+1. Open AntSKIP.
+2. Go to `Ensinar frases`.
+3. Tap the action type, for example `Editar frases: Aberturas e intros`.
+4. Add the exact text shown by the streaming app, one phrase per line.
+5. Save and test the episode again.
+
+Examples:
+
+```text
+Pular abertura
+Proximo
+Skip Intro
+Next Episode
+```
+
+Custom phrases are stored locally in Android `SharedPreferences`.
+
+## Known Limits
+
+- AntSKIP can only tap buttons that the streaming app exposes to Android
+  Accessibility.
+- If a streaming app hides the button from accessibility, no phrase can match it.
+- Streaming apps can change labels, package names, or accessibility behavior at
+  any time.
+- Next-episode prompts can behave differently for movies, specials, and final
+  episodes. Disable `Proximo episodio` if you prefer to manually watch endings.
+- The app currently supports one package name per provider. Forks, TV builds, or
+  region-specific variants may need another package entry.
+
+## Build
+
+Open the project directory:
+
+```powershell
+cd C:\Users\artur\AntSKIP
+```
+
+Build debug and release APKs:
+
+```powershell
+gradle :app:assembleDebug :app:assembleRelease
+```
 
 ## Architecture
 
@@ -63,114 +178,12 @@ app/src/main/kotlin/com/artur/antskip
     └── MainActivity.kt
 ```
 
-### Responsibility Split
+## Safety Model
 
-- `accessibility`: receives Android accessibility events and delegates matching.
-- `data`: persists user settings in `SharedPreferences`.
-- `domain`: defines providers and skip action types.
-- `matcher`: extracts accessible node text, normalizes labels and finds clickable nodes.
-- `ui`: native settings screen for providers and skip actions.
-
-## Performance Model
-
-AntSKIP is intentionally event-driven:
-
-- No screen recording or screenshot analysis.
-- No floating overlay.
-- No continuous polling loop.
-- Only receives events from configured streaming package names.
-- Scans at most 300 accessibility nodes per event.
-- Uses a 3 second cooldown after a successful tap.
-
-## Build
-
-Open the project directory in Android Studio:
-
-```powershell
-cd C:\Users\artur\AntSKIP
-```
-
-Then run:
-
-```powershell
-gradle :app:assembleDebug
-```
-
-If using Android Studio, select `app` and run the debug build from the IDE.
-
-## Install And Enable
-
-For manual installation from GitHub, download the signed test APK from the
-latest release:
-
-```text
-AntSKIP-v1.0-test-signed.apk
-```
-
-Do not install `app-release-unsigned.apk` directly. It is not signed and Android
-will reject it.
-
-1. Download `AntSKIP-v1.0-test-signed.apk` on the Android phone.
-2. Open the downloaded APK and allow installation from unknown sources if Android asks.
-3. Open AntSKIP.
-4. Tap `Abrir acessibilidade`.
-5. Enable the `AntSKIP` accessibility service.
-6. Keep Crunchyroll enabled and choose the skip actions you want.
-
-Android requires accessibility permission to be enabled manually by the user.
-
-### Restricted Settings
-
-On recent Android versions, sideloaded apps can show this message in
-accessibility settings:
-
-```text
-Controlada pelas configuracoes restritas
-```
-
-To allow AntSKIP accessibility access:
-
-1. Open Android `Configuracoes`.
-2. Go to `Apps`.
-3. Select `AntSKIP`.
-4. Open the three-dot menu in the top-right corner.
-5. Tap `Permitir configuracoes restritas`.
-6. Confirm with PIN, password or biometrics if Android asks.
-7. Return to `Configuracoes > Acessibilidade`.
-8. Enable the `AntSKIP` accessibility service.
-
-After enabling the service, open Crunchyroll and test an episode that exposes a
-skip button such as `Pular abertura`.
-
-### Local Debug Install
-
-When building locally, Android Studio or Gradle can install the debug APK:
-
-```powershell
-gradle :app:assembleDebug
-```
-
-## Extending Providers
-
-To add or tune a provider:
-
-1. Add the Android package to `StreamingProvider.kt`.
-2. Add the package to `res/xml/ant_skip_accessibility_service.xml`.
-3. Add provider-specific labels or view IDs to `SkipPhraseBank.kt`.
-4. Keep risky actions disabled by default until tested on-device.
-
-## Repository Workflow
-
-Recommended commit style:
-
-```text
-feat: add provider profile
-refactor: isolate skip matcher
-docs: document setup and provider model
-```
-
-## Safety Notes
-
-AntSKIP only automates taps on accessibility nodes exposed by selected apps. It
-does not modify streaming apps, bypass DRM, inspect video frames or interact with
-network traffic.
+- No screenshots.
+- No overlays.
+- No background screen recording.
+- No DRM bypass.
+- No modification of streaming app files.
+- No traffic inspection.
+- Accessibility events are limited to configured streaming package names.
