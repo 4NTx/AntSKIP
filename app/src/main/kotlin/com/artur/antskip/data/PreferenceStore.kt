@@ -7,6 +7,10 @@ import com.artur.antskip.domain.StreamingProvider
 class PreferenceStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
+    init {
+        migrateCriticalDefaults()
+    }
+
     val isAutomationEnabled: Boolean
         get() = preferences.getBoolean(KEY_AUTOMATION_ENABLED, true)
 
@@ -55,10 +59,24 @@ class PreferenceStore(context: Context) {
     private fun providerActionKey(provider: StreamingProvider, action: SkipAction): String =
         "provider_action_${provider.name.lowercase()}_${action.name.lowercase()}"
 
+    private fun migrateCriticalDefaults() {
+        if (preferences.getInt(KEY_MIGRATION_VERSION, 0) >= CURRENT_MIGRATION_VERSION) return
+
+        preferences.edit()
+            .putBoolean(KEY_AUTOMATION_ENABLED, true)
+            .putBoolean(StreamingProvider.CRUNCHYROLL.preferenceKey, true)
+            .putBoolean(SkipAction.INTRO.preferenceKey, true)
+            .putBoolean(providerActionKey(StreamingProvider.CRUNCHYROLL, SkipAction.INTRO), true)
+            .putInt(KEY_MIGRATION_VERSION, CURRENT_MIGRATION_VERSION)
+            .apply()
+    }
+
     private companion object {
         const val PREFERENCES_NAME = "antskip"
         const val KEY_AUTOMATION_ENABLED = "automation_enabled"
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
+        const val KEY_MIGRATION_VERSION = "migration_version"
+        const val CURRENT_MIGRATION_VERSION = 1
 
         val DEFAULT_BLOCKED_PHRASES = setOf(
             "assistir do inicio",

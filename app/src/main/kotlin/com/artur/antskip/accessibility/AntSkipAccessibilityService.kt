@@ -4,16 +4,21 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.Toast
 import com.artur.antskip.data.PreferenceStore
+import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
 import com.artur.antskip.matcher.SkipMatcher
 
 class AntSkipAccessibilityService : AccessibilityService() {
     private val preferences by lazy { PreferenceStore(this) }
     private val matcher by lazy { SkipMatcher(preferences) }
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private var lastClickAtMillis = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -26,8 +31,9 @@ class AntSkipAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
         try {
             val match = matcher.findTarget(root, provider)
-            if (match != null && (clickFirstValidTarget(match.targets) || tapFirstValidBound(match.tapBounds))) {
+            if (match != null && performSkip(match, provider)) {
                 lastClickAtMillis = now
+                showSkipToast(match.action)
             }
             match?.targets?.forEach { it.recycle() }
         } finally {
@@ -36,6 +42,13 @@ class AntSkipAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
+
+    private fun performSkip(match: SkipMatcher.MatchResult, provider: StreamingProvider): Boolean =
+        if (provider == StreamingProvider.CRUNCHYROLL && match.action == SkipAction.INTRO) {
+            tapFirstValidBound(match.tapBounds) || clickFirstValidTarget(match.targets)
+        } else {
+            clickFirstValidTarget(match.targets) || tapFirstValidBound(match.tapBounds)
+        }
 
     private fun tapFirstValidBound(bounds: List<Rect>): Boolean {
         val metrics = resources.displayMetrics
@@ -63,6 +76,19 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
     private fun clickFirstValidTarget(targets: List<AccessibilityNodeInfo>): Boolean =
         targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
+
+    private fun showSkipToast(action: SkipAction) {
+        val message = when (action) {
+            SkipAction.INTRO -> "Pulando abertura"
+            SkipAction.RECAP -> "Pulando resumo"
+            SkipAction.CREDITS -> "Pulando creditos"
+            SkipAction.PREVIEW -> "Pulando previa"
+            SkipAction.NEXT_EPISODE -> "Pulando para o proximo episodio"
+        }
+        mainHandler.post {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     private companion object {
         const val CLICK_COOLDOWN_MS = 3_000L
