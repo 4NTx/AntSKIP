@@ -26,7 +26,6 @@ click when a matching button appears.
   Netflix and disabled for Prime Video.
 - Supports custom phrases per action, so users can teach the app labels from
   any language or app version.
-- Supports a blocklist of phrases that AntSKIP must never click.
 - Normalizes accents and casing before matching. For example, `Próximo`,
   `proximo`, and `PROXIMO` are treated the same.
 - Uses a cooldown after each tap to avoid repeated clicks.
@@ -46,6 +45,15 @@ click when a matching button appears.
 Experimental means the app is monitored and the generic skip actions can work
 when the streaming app exposes accessible button text, but it still needs
 device-by-device testing.
+
+Crunchyroll uses stricter matching than the other providers. It only reacts to
+visible intro/opening labels such as `PULAR INTRODUCAO`, `PULAR ABERTURA`,
+`Skip Intro`, or `Skip Opening`, and rejects large clickable containers so it
+does not tap anime list rows or full-screen player areas.
+
+Netflix uses the normal phrase bank plus Android accessibility click fallbacks,
+because Netflix can expose the button action on an ancestor node instead of the
+text node itself.
 
 ## Supported Skip Actions
 
@@ -68,7 +76,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.5-test-signed.apk
+AntSKIP-v1.10-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android
@@ -91,7 +99,7 @@ For the first test, use the safest configuration:
 
 1. Keep `Automation` enabled.
 2. Keep only `Netflix` or `Crunchyroll` enabled.
-3. In `Per-app rules`, enable only `Intros/openings` for that app.
+3. Enable only `Intros/openings` while testing.
 4. Play an episode that shows a visible skip-intro button.
 5. Confirm that Android shows `Pulando abertura`.
 
@@ -158,7 +166,13 @@ Global actions are only the default behavior. AntSKIP can also configure every
 action separately for every streaming app.
 
 Use `Regras por app` in the app UI to decide which actions are allowed for each
-provider. This is the safest way to reduce false positives.
+provider. This is the safest way to reduce false positives on providers other
+than Crunchyroll.
+
+Crunchyroll intentionally ignores per-app action rules and custom phrases in the
+matcher. It follows only the global `Aberturas e intros` switch and the built-in
+strict intro labels, because generic rules caused false taps while browsing the
+anime list.
 
 Examples:
 
@@ -168,34 +182,6 @@ Examples:
 - Keep experimental providers disabled until you confirm their labels.
 
 If a per-app rule is changed, it overrides the global default for that provider.
-
-## Blocklist
-
-The blocklist prevents AntSKIP from clicking buttons that contain dangerous or
-unwanted phrases. The default blocklist includes examples such as:
-
-```text
-Watch from beginning
-Restart
-Trailer
-More info
-Details
-```
-
-Use `Lista de bloqueio` in the app UI to add one phrase per line. Blocked
-phrases are checked before skip phrases, so the blocklist wins even if another
-phrase would normally match.
-
-Good blocklist candidates are labels that should never be tapped automatically,
-especially if they can appear near a player:
-
-```text
-Watch from beginning
-Restart episode
-Play trailer
-More information
-Manage profiles
-```
 
 ## Troubleshooting
 
@@ -217,15 +203,15 @@ Settings > Accessibility > AntSKIP
 ### The button appears but AntSKIP does not tap it
 
 - Confirm the streaming app is enabled in AntSKIP.
-- Confirm the action is enabled in `Per-app rules`.
+- Confirm the action is enabled globally. For Netflix and experimental
+  providers, also confirm it in `Per-app rules`.
 - Add the exact visible label in `Custom phrases`.
-- Check the blocklist. If the same label, or part of it, is blocked, AntSKIP
-  will not tap it.
+- For Crunchyroll, the current strict matcher only supports built-in intro
+  labels and does not use custom phrases.
 
 ### AntSKIP taps the wrong button
 
 - Disable that action for the affected app in `Per-app rules`.
-- Add the wrong button label to the blocklist.
 - Avoid generic custom phrases such as `Next` unless they are scoped to a trusted
   provider through per-app rules.
 
