@@ -1,5 +1,6 @@
 package com.artur.antskip.matcher
 
+import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
@@ -11,6 +12,7 @@ class SkipMatcher(
 ) {
     data class MatchResult(
         val targets: List<AccessibilityNodeInfo>,
+        val tapBounds: List<Rect>,
         val action: SkipAction,
     )
 
@@ -30,9 +32,14 @@ class SkipMatcher(
                 val action = phraseBank.match(nodeText) ?: matchCustomPhrase(nodeText)
                 if (action != null && preferences.isActionEnabledForProvider(provider, action)) {
                     val targets = node.clickCandidates()
+                    val bounds = node.tapBounds()
                     node.recycle()
                     pending.recycleAll()
-                    return targets.takeIf { it.isNotEmpty() }?.let { MatchResult(it, action) }
+                    return if (targets.isNotEmpty() || bounds.isNotEmpty()) {
+                        MatchResult(targets, bounds, action)
+                    } else {
+                        null
+                    }
                 }
 
                 addChildren(node, pending)
@@ -43,7 +50,7 @@ class SkipMatcher(
 
         pending.recycleAll()
         return null
-        }
+    }
 
     private fun matchCustomPhrase(text: String): SkipAction? =
         SkipAction.entries.firstOrNull { action ->
@@ -73,6 +80,24 @@ class SkipMatcher(
         return targets
     }
 
+    private fun AccessibilityNodeInfo.tapBounds(): List<Rect> {
+        val bounds = mutableListOf<Rect>()
+        var current: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(this)
+        while (current != null) {
+            if (current.isEnabled && current.isVisibleToUser) {
+                val rect = Rect()
+                current.getBoundsInScreen(rect)
+                if (!rect.isEmpty && rect.width() >= MIN_TAP_SIZE && rect.height() >= MIN_TAP_SIZE) {
+                    bounds.add(rect)
+                }
+            }
+            val parent = current.parent
+            current.recycle()
+            current = parent
+        }
+        return bounds.distinctBy { "${it.left},${it.top},${it.right},${it.bottom}" }
+    }
+
     private fun AccessibilityNodeInfo.canClick(): Boolean =
         isClickable || actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
 
@@ -90,5 +115,6 @@ class SkipMatcher(
 
     private companion object {
         const val MAX_VISITED_NODES = 300
+        const val MIN_TAP_SIZE = 12
     }
 }
