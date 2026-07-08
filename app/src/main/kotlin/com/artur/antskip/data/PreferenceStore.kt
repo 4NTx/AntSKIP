@@ -76,7 +76,7 @@ class PreferenceStore(context: Context) {
         const val KEY_AUTOMATION_ENABLED = "automation_enabled"
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
         const val KEY_MIGRATION_VERSION = "migration_version"
-        const val CURRENT_MIGRATION_VERSION = 1
+        const val CURRENT_MIGRATION_VERSION = 2
 
         val DEFAULT_BLOCKED_PHRASES = setOf(
             "assistir do inicio",

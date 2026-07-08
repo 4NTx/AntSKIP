@@ -10,4 +10,10 @@ object NodeText {
         append(' ')
         append(node.viewIdResourceName.orEmpty())
     }.normalizeForMatch()
+
+    fun visibleFrom(node: AccessibilityNodeInfo): String = buildString {
+        append(node.text?.toString().orEmpty())
+        append(' ')
+        append(node.contentDescription?.toString().orEmpty())
+    }.normalizeForMatch()
 }
