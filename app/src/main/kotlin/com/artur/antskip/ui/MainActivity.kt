@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -24,15 +25,21 @@ import com.artur.antskip.accessibility.AntSkipAccessibilityService
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : Activity() {
     private val preferences by lazy { PreferenceStore(this) }
+    private var updateState: UpdateState = UpdateState.NotChecked
+    private var updateCheckStarted = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.statusBarColor = BACKGROUND
         window.navigationBarColor = BACKGROUND
         render()
+        checkForUpdates()
     }
 
     override fun onResume() {
@@ -55,6 +62,7 @@ class MainActivity : Activity() {
         }
 
         content.addView(headerPanel())
+        content.addView(versionPanel())
         content.addView(enablePanel())
         content.addView(safeTestPanel())
         content.addView(appsPanel())
@@ -96,6 +104,45 @@ class MainActivity : Activity() {
             )
         }
     }
+
+    private fun versionPanel(): LinearLayout =
+        panel("Versao").apply {
+            val state = updateState
+            addView(
+                text(
+                    "Instalada: ${installedVersionName()}",
+                    14,
+                    bold = true,
+                    color = TEXT_DARK,
+                ).withPadding(bottom = 6),
+            )
+            when (state) {
+                UpdateState.NotChecked,
+                UpdateState.Checking -> {
+                    addView(text("Verificando atualizacao...", 14, color = TEXT_MUTED))
+                }
+                is UpdateState.UpToDate -> {
+                    addView(statusBadge("Atualizado", SUCCESS_DARK, SUCCESS_SOFT))
+                    addView(text("Ultima versao: ${state.latestVersion}", 13, color = TEXT_MUTED).withPadding(top = 8))
+                }
+                is UpdateState.UpdateAvailable -> {
+                    addView(statusBadge("Atualizacao disponivel", WARNING_DARK, WARNING_SOFT))
+                    addView(
+                        text(
+                            "Nova versao: ${state.latestVersion}",
+                            13,
+                            color = TEXT_MUTED,
+                        ).withPadding(top = 8, bottom = 10),
+                    )
+                    addView(primaryButton("Abrir download") { openUrl(state.releaseUrl) })
+                }
+                is UpdateState.CheckFailed -> {
+                    addView(statusBadge("Nao foi possivel verificar", DANGER_DARK, DANGER_SOFT))
+                    addView(text(state.message, 13, color = TEXT_MUTED).withPadding(top = 8, bottom = 10))
+                    addView(secondaryButton("Ver releases") { openUrl(RELEASES_URL) })
+                }
+            }
+        }
 
     private fun enablePanel(): LinearLayout {
         val enabled = isAccessibilityServiceEnabled()
@@ -422,6 +469,74 @@ class MainActivity : Activity() {
         )
     }
 
+    private fun openUrl(url: String) {
+        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    private fun checkForUpdates() {
+        if (updateCheckStarted) return
+        updateCheckStarted = true
+        updateState = UpdateState.Checking
+        Thread {
+            val result = runCatching {
+                val connection = (URL(LATEST_RELEASE_API_URL).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = UPDATE_TIMEOUT_MS
+                    readTimeout = UPDATE_TIMEOUT_MS
+                    requestMethod = "GET"
+                    setRequestProperty("Accept", "application/vnd.github+json")
+                    setRequestProperty("User-Agent", "AntSKIP/${installedVersionName()}")
+                }
+                try {
+                    if (connection.responseCode !in 200..299) {
+                        error("HTTP ${connection.responseCode}")
+                    }
+                    val body = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(body)
+                    val latestVersion = json.getString("tag_name").removePrefix("v")
+                    val releaseUrl = json.getString("html_url")
+                    if (isNewerVersion(latestVersion, installedVersionName())) {
+                        UpdateState.UpdateAvailable(latestVersion, releaseUrl)
+                    } else {
+                        UpdateState.UpToDate(latestVersion)
+                    }
+                } finally {
+                    connection.disconnect()
+                }
+            }.getOrElse {
+                UpdateState.CheckFailed("Confira sua conexao ou abra a pagina de releases manualmente.")
+            }
+
+            runOnUiThread {
+                updateState = result
+                render()
+            }
+        }.start()
+    }
+
+    private fun installedVersionName(): String =
+        try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "?"
+        } catch (_: PackageManager.NameNotFoundException) {
+            "?"
+        }
+
+    private fun isNewerVersion(latest: String, installed: String): Boolean {
+        val latestParts = latest.toVersionParts()
+        val installedParts = installed.toVersionParts()
+        val maxSize = maxOf(latestParts.size, installedParts.size)
+        repeat(maxSize) { index ->
+            val latestPart = latestParts.getOrElse(index) { 0 }
+            val installedPart = installedParts.getOrElse(index) { 0 }
+            if (latestPart != installedPart) return latestPart > installedPart
+        }
+        return false
+    }
+
+    private fun String.toVersionParts(): List<Int> =
+        removePrefix("v")
+            .split('.')
+            .map { value -> value.takeWhile { it.isDigit() }.toIntOrNull() ?: 0 }
+
     private fun isAccessibilityServiceEnabled(): Boolean {
         val expected = ComponentName(this, AntSkipAccessibilityService::class.java).flattenToString()
         val enabled = Settings.Secure.getString(
@@ -472,6 +587,9 @@ class MainActivity : Activity() {
         (value * resources.displayMetrics.density + 0.5f).toInt()
 
     private companion object {
+        const val LATEST_RELEASE_API_URL = "https://api.github.com/repos/4NTx/AntSKIP/releases/latest"
+        const val RELEASES_URL = "https://github.com/4NTx/AntSKIP/releases/latest"
+        const val UPDATE_TIMEOUT_MS = 5_000
         const val BACKGROUND = 0xFFF6F7F9.toInt()
         const val TEXT_DARK = 0xFF1F2933.toInt()
         const val TEXT_MUTED = 0xFF637083.toInt()
@@ -485,5 +603,13 @@ class MainActivity : Activity() {
         const val WARNING_SOFT = 0xFFFFF4D8.toInt()
         const val WARNING_STROKE = 0xFFFFD990.toInt()
         const val STROKE = 0xFFE3E7ED.toInt()
+    }
+
+    private sealed interface UpdateState {
+        data object NotChecked : UpdateState
+        data object Checking : UpdateState
+        data class UpToDate(val latestVersion: String) : UpdateState
+        data class UpdateAvailable(val latestVersion: String, val releaseUrl: String) : UpdateState
+        data class CheckFailed(val message: String) : UpdateState
     }
 }
