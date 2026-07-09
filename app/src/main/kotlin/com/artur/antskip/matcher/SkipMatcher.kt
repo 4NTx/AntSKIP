@@ -15,6 +15,7 @@ class SkipMatcher(
         val action: SkipAction,
         val matchedText: String,
         val visitedNodes: Int,
+        val gestureBounds: Rect,
     )
 
     fun findTarget(root: AccessibilityNodeInfo, provider: StreamingProvider): MatchResult? {
@@ -45,7 +46,8 @@ class SkipMatcher(
                 }
             if (action != null && isActionAllowed(action, provider)) {
                 val targets = node.clickCandidates(provider, rootBounds)
-                val result = MatchResult(targets, action, matchedText, visited)
+                val gestureBounds = Rect().also(node::getBoundsInScreen)
+                val result = MatchResult(targets, action, matchedText, visited, gestureBounds)
                 if (targets.isNotEmpty()) {
                     node.recycle()
                     pending.recycleAll()

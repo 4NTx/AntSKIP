@@ -1,6 +1,8 @@
 package com.artur.antskip.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.GestureDescription
+import android.graphics.Path
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -55,14 +57,16 @@ class AntSkipAccessibilityService : AccessibilityService() {
             }
 
             val clicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
+            val gestureClicked = !clicked && canUseGestureFallback(provider, match) && tapBounds(match.gestureBounds)
             val logLine = "event=${event.eventType} provider=${provider.label} action=${match.action.name} " +
-                "targets=${match.targets.size} clicked=$clicked visited=${match.visitedNodes} text='${match.matchedText}'"
+                "targets=${match.targets.size} clicked=${clicked || gestureClicked} gesture=$gestureClicked " +
+                "visited=${match.visitedNodes} bounds=${match.gestureBounds.flattenToString()} text='${match.matchedText}'"
             if (match.targets.isEmpty()) {
                 logThrottled(logLine)
             } else {
                 preferences.appendDiagnosticLog(logLine)
             }
-            if (clicked) {
+            if (clicked || gestureClicked) {
                 lastClickAtMillis = now
                 showSkipToast(match.action)
             }
@@ -94,8 +98,25 @@ class AntSkipAccessibilityService : AccessibilityService() {
         preferences.appendDiagnosticLog(message)
     }
 
+    private fun canUseGestureFallback(provider: StreamingProvider, match: SkipMatcher.MatchResult): Boolean =
+        provider == StreamingProvider.CRUNCHYROLL &&
+            match.action == SkipAction.NEXT_EPISODE &&
+            match.targets.isEmpty() &&
+            !match.gestureBounds.isEmpty
+
+    private fun tapBounds(bounds: android.graphics.Rect): Boolean {
+        val path = Path().apply {
+            moveTo(bounds.exactCenterX(), bounds.exactCenterY())
+        }
+        val gesture = GestureDescription.Builder()
+            .addStroke(GestureDescription.StrokeDescription(path, 0, GESTURE_TAP_DURATION_MS))
+            .build()
+        return dispatchGesture(gesture, null, null)
+    }
+
     private companion object {
         const val CLICK_COOLDOWN_MS = 3_000L
         const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
+        const val GESTURE_TAP_DURATION_MS = 80L
     }
 }
