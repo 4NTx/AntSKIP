@@ -28,6 +28,8 @@ click when a matching button appears.
   advance can stop during selected hours.
 - Supports one-time `Next episode` pauses per app, such as pausing for 1, 2, or
   4 hours, or until a selected time.
+- Adds a stronger sleep mode that can also block credits skipping while sleep
+  protection is active, reducing accidental episode advance.
 - Supports custom phrases per action, so users can teach the app labels from
   any language or app version.
 - Normalizes accents and casing before matching. For example, `Próximo`,
@@ -87,7 +89,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.19-test-signed.apk
+AntSKIP-v1.21-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android

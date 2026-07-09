@@ -78,9 +78,9 @@ class SkipMatcher(
     private fun isActionAllowed(action: SkipAction, provider: StreamingProvider): Boolean =
         when {
             action == SkipAction.NEXT_EPISODE && preferences.isNextEpisodeBlocked(provider) -> false
-            provider == StreamingProvider.CRUNCHYROLL && action != SkipAction.NEXT_EPISODE -> {
-                preferences.isActionEnabled(action)
-            }
+            action == SkipAction.CREDITS &&
+                preferences.isSleepProtectionActive(provider) &&
+                preferences.blocksCreditsDuringSleep(provider) -> false
             else -> preferences.isActionEnabledForProvider(provider, action)
         }
 

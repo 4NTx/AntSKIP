@@ -28,8 +28,11 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(action.preferenceKey, enabled).apply()
     }
 
-    fun isActionEnabledForProvider(provider: StreamingProvider, action: SkipAction): Boolean =
-        preferences.getBoolean(providerActionKey(provider, action), provider.isActionEnabledByDefault(action))
+    fun isActionEnabledForProvider(provider: StreamingProvider, action: SkipAction): Boolean {
+        val key = providerActionKey(provider, action)
+        if (preferences.contains(key)) return preferences.getBoolean(key, provider.isActionEnabledByDefault(action))
+        return isActionEnabled(action) && provider.isActionEnabledByDefault(action)
+    }
 
     fun setActionEnabledForProvider(provider: StreamingProvider, action: SkipAction, enabled: Boolean) {
         preferences.edit().putBoolean(providerActionKey(provider, action), enabled).apply()
@@ -81,6 +84,16 @@ class PreferenceStore(context: Context) {
 
     fun isNextEpisodeBlocked(provider: StreamingProvider, nowMillis: Long = System.currentTimeMillis()): Boolean =
         nextEpisodePauseUntilMillis(provider) > nowMillis || isNextEpisodeBlockedBySchedule(provider)
+
+    fun isSleepProtectionActive(provider: StreamingProvider): Boolean =
+        isNextEpisodeBlocked(provider)
+
+    fun blocksCreditsDuringSleep(provider: StreamingProvider): Boolean =
+        preferences.getBoolean(blockCreditsDuringSleepKey(provider), true)
+
+    fun setBlocksCreditsDuringSleep(provider: StreamingProvider, enabled: Boolean) {
+        preferences.edit().putBoolean(blockCreditsDuringSleepKey(provider), enabled).apply()
+    }
 
     fun customPhrases(action: SkipAction): Set<String> =
         preferences.getStringSet(customPhraseKey(action), emptySet()).orEmpty()
@@ -137,6 +150,9 @@ class PreferenceStore(context: Context) {
 
     private fun nextEpisodePauseUntilKey(provider: StreamingProvider): String =
         "next_episode_pause_until_${provider.name.lowercase()}"
+
+    private fun blockCreditsDuringSleepKey(provider: StreamingProvider): String =
+        "block_credits_during_sleep_${provider.name.lowercase()}"
 
     private fun migrateCriticalDefaults() {
         if (preferences.getInt(KEY_MIGRATION_VERSION, 0) >= CURRENT_MIGRATION_VERSION) return

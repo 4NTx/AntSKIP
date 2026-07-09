@@ -105,18 +105,36 @@ class AntSkipAccessibilityService : AccessibilityService() {
             !match.gestureBounds.isEmpty
 
     private fun tapBounds(bounds: android.graphics.Rect): Boolean {
-        val path = Path().apply {
-            moveTo(bounds.exactCenterX(), bounds.exactCenterY())
+        val tapYAboveLabel = bounds.top - maxOf(bounds.height() * 4f, NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX)
+        val gestureBuilder = GestureDescription.Builder()
+        if (tapYAboveLabel > 0f) {
+            gestureBuilder.addStroke(
+                GestureDescription.StrokeDescription(
+                    tapPath(bounds.exactCenterX(), tapYAboveLabel),
+                    0,
+                    GESTURE_TAP_DURATION_MS,
+                ),
+            )
         }
-        val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, GESTURE_TAP_DURATION_MS))
-            .build()
+        gestureBuilder.addStroke(
+            GestureDescription.StrokeDescription(
+                tapPath(bounds.exactCenterX(), bounds.exactCenterY()),
+                GESTURE_SECOND_TAP_DELAY_MS,
+                GESTURE_TAP_DURATION_MS,
+            ),
+        )
+        val gesture = gestureBuilder.build()
         return dispatchGesture(gesture, null, null)
     }
+
+    private fun tapPath(x: Float, y: Float): Path =
+        Path().apply { moveTo(x, y) }
 
     private companion object {
         const val CLICK_COOLDOWN_MS = 3_000L
         const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
         const val GESTURE_TAP_DURATION_MS = 80L
+        const val GESTURE_SECOND_TAP_DELAY_MS = 140L
+        const val NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX = 160f
     }
 }

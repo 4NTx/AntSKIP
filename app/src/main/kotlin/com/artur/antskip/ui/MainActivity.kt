@@ -72,6 +72,7 @@ class MainActivity : Activity() {
 
         content.addView(headerPanel())
         content.addView(versionPanel())
+        content.addView(sleepProtectionStatusPanel())
         content.addView(enablePanel())
         content.addView(safeTestPanel())
         content.addView(appsPanel())
@@ -176,6 +177,26 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun sleepProtectionStatusPanel(): LinearLayout {
+        val activeProviders = StreamingProvider.entries.filter { preferences.isSleepProtectionActive(it) }
+        return panel("Modo dormir").apply {
+            if (activeProviders.isEmpty()) {
+                addView(text("Nenhuma pausa de proximo episodio ativa.", 14, color = TEXT_MUTED))
+            } else {
+                activeProviders.forEach { provider ->
+                    val pauseUntil = preferences.nextEpisodePauseUntilMillis(provider)
+                    val status = if (pauseUntil > System.currentTimeMillis()) {
+                        "${provider.label}: ate ${formatTimestamp(pauseUntil)}"
+                    } else {
+                        "${provider.label}: horario diario ativo"
+                    }
+                    addView(statusBadge(status, WARNING_DARK, WARNING_SOFT).withTopMargin(6))
+                }
+            }
+            addView(secondaryButton("Configurar por app") { showProviderPicker() }.withTopMargin(10))
+        }
+    }
+
     private fun safeTestPanel(): LinearLayout =
         panel("2. Teste seguro").apply {
             addView(step("A", "Deixe ligado apenas Netflix ou Crunchyroll enquanto testa."))
@@ -212,7 +233,7 @@ class MainActivity : Activity() {
         panel("4. Padroes globais").apply {
             addView(
                 text(
-                    "Estes sao os padroes. Regras por app podem liberar ou bloquear uma acao so em um streaming.",
+                    "Estes sao os padroes. Se uma regra por app for alterada, ela vence este padrao global.",
                     14,
                     color = TEXT_MUTED,
                 ).withPadding(bottom = 8),
@@ -290,7 +311,7 @@ class MainActivity : Activity() {
 
         AlertDialog.Builder(this)
             .setTitle("Regras: ${provider.label}")
-            .setMessage("Estas regras valem so para ${provider.label}.")
+            .setMessage("Estas regras valem so para ${provider.label} e vencem os padroes globais.")
             .setView(ScrollView(this).apply { addView(list) })
             .setPositiveButton("Fechar") { _, _ -> render() }
             .show()
@@ -301,6 +322,16 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(10), 0, dp(4))
             addView(temporaryNextEpisodePausePanel(provider))
+            addView(separator())
+            addView(
+                switchRow(
+                    "Protecao forte ao dormir",
+                    "Enquanto o modo dormir estiver ativo, tambem bloqueia Pular creditos para reduzir avanco acidental.",
+                    preferences.blocksCreditsDuringSleep(provider),
+                ) {
+                    preferences.setBlocksCreditsDuringSleep(provider, it)
+                },
+            )
             addView(separator())
             addView(
                 switchRow(
