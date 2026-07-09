@@ -29,6 +29,10 @@ import com.artur.antskip.domain.StreamingProvider
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.Locale
 
 class MainActivity : Activity() {
@@ -292,10 +296,12 @@ class MainActivity : Activity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(10), 0, dp(4))
+            addView(temporaryNextEpisodePausePanel(provider))
+            addView(separator())
             addView(
                 switchRow(
                     "Pausar Proximo episodio por horario",
-                    "Durante este periodo, ${provider.label} nao avanca para o proximo episodio automaticamente.",
+                    "Repete todos os dias durante este periodo.",
                     preferences.isNextEpisodeScheduleEnabled(provider),
                 ) {
                     preferences.setNextEpisodeScheduleEnabled(provider, it)
@@ -331,6 +337,62 @@ class MainActivity : Activity() {
             )
         }
 
+    private fun temporaryNextEpisodePausePanel(provider: StreamingProvider): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, dp(10))
+            val pauseUntil = preferences.nextEpisodePauseUntilMillis(provider)
+            val isPaused = pauseUntil > System.currentTimeMillis()
+            addView(
+                text(
+                    if (isPaused) {
+                        "Proximo episodio pausado ate ${formatTimestamp(pauseUntil)}"
+                    } else {
+                        "Pausar Proximo episodio agora"
+                    },
+                    16,
+                    bold = true,
+                    color = TEXT_DARK,
+                ).withPadding(bottom = 6),
+            )
+            addView(text("Bloqueia temporariamente so em ${provider.label}.", 13, color = TEXT_MUTED))
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, dp(8), 0, 0)
+                    addView(pauseButton(provider, "1h", 1).weightedButton())
+                    addView(pauseButton(provider, "2h", 2).weightedButton(leftMargin = 8))
+                    addView(pauseButton(provider, "4h", 4).weightedButton(leftMargin = 8))
+                },
+            )
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, dp(8), 0, 0)
+                    addView(
+                        secondaryButton("Ate horario") {
+                            showTimePicker(currentMinutesOfDay()) { minutes ->
+                                preferences.setNextEpisodePauseUntilMillis(provider, nextOccurrenceMillis(minutes))
+                                showProviderRules(provider)
+                            }
+                        }.weightedButton(),
+                    )
+                    addView(
+                        secondaryButton("Cancelar pausa") {
+                            preferences.clearNextEpisodePause(provider)
+                            showProviderRules(provider)
+                        }.weightedButton(leftMargin = 8),
+                    )
+                },
+            )
+        }
+
+    private fun pauseButton(provider: StreamingProvider, label: String, hours: Long): Button =
+        secondaryButton(label) {
+            preferences.setNextEpisodePauseUntilMillis(provider, System.currentTimeMillis() + hours * 60 * 60 * 1_000)
+            showProviderRules(provider)
+        }
+
     private fun showTimePicker(currentMinutes: Int, onSelected: (Int) -> Unit) {
         TimePickerDialog(
             this,
@@ -343,6 +405,26 @@ class MainActivity : Activity() {
 
     private fun formatMinutes(minutes: Int): String =
         String.format(Locale.US, "%02d:%02d", minutes / 60, minutes % 60)
+
+    private fun formatTimestamp(millis: Long): String {
+        val dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneId.systemDefault())
+        return formatMinutes(dateTime.hour * 60 + dateTime.minute)
+    }
+
+    private fun currentMinutesOfDay(): Int {
+        val now = LocalDateTime.now()
+        return now.hour * 60 + now.minute
+    }
+
+    private fun nextOccurrenceMillis(minutes: Int): Long {
+        val now = LocalDateTime.now()
+        val selected = LocalDateTime.of(
+            LocalDate.now(),
+            java.time.LocalTime.of(minutes / 60, minutes % 60),
+        )
+        val target = if (selected.isAfter(now)) selected else selected.plusDays(1)
+        return target.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+    }
 
     private fun showActionPicker() {
         val list = LinearLayout(this).apply {
@@ -486,6 +568,12 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
         }
+
+    private fun Button.weightedButton(leftMargin: Int = 0): Button = apply {
+        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+            this.leftMargin = dp(leftMargin)
+        }
+    }
 
     private fun statusBadge(label: String, textColor: Int, backgroundColor: Int): TextView =
         text(label, 13, bold = true, color = textColor).apply {

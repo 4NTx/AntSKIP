@@ -57,7 +57,7 @@ class SkipMatcher(
 
     private fun isActionAllowed(action: SkipAction, provider: StreamingProvider): Boolean =
         when {
-            action == SkipAction.NEXT_EPISODE && preferences.isNextEpisodeBlockedBySchedule(provider) -> false
+            action == SkipAction.NEXT_EPISODE && preferences.isNextEpisodeBlocked(provider) -> false
             else -> preferences.isActionEnabledForProvider(provider, action)
         }
 

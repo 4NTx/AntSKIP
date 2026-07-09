@@ -66,6 +66,20 @@ class PreferenceStore(context: Context) {
         }
     }
 
+    fun nextEpisodePauseUntilMillis(provider: StreamingProvider): Long =
+        preferences.getLong(nextEpisodePauseUntilKey(provider), 0L)
+
+    fun setNextEpisodePauseUntilMillis(provider: StreamingProvider, untilMillis: Long) {
+        preferences.edit().putLong(nextEpisodePauseUntilKey(provider), untilMillis).apply()
+    }
+
+    fun clearNextEpisodePause(provider: StreamingProvider) {
+        preferences.edit().remove(nextEpisodePauseUntilKey(provider)).apply()
+    }
+
+    fun isNextEpisodeBlocked(provider: StreamingProvider, nowMillis: Long = System.currentTimeMillis()): Boolean =
+        nextEpisodePauseUntilMillis(provider) > nowMillis || isNextEpisodeBlockedBySchedule(provider)
+
     fun customPhrases(action: SkipAction): Set<String> =
         preferences.getStringSet(customPhraseKey(action), emptySet()).orEmpty()
 
@@ -101,6 +115,9 @@ class PreferenceStore(context: Context) {
 
     private fun nextEpisodeScheduleEndKey(provider: StreamingProvider): String =
         "next_episode_schedule_end_${provider.name.lowercase()}"
+
+    private fun nextEpisodePauseUntilKey(provider: StreamingProvider): String =
+        "next_episode_pause_until_${provider.name.lowercase()}"
 
     private fun migrateCriticalDefaults() {
         if (preferences.getInt(KEY_MIGRATION_VERSION, 0) >= CURRENT_MIGRATION_VERSION) return
