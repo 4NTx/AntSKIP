@@ -7,6 +7,7 @@ import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
+import com.artur.antskip.R
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
@@ -41,15 +42,15 @@ class AntSkipAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     private fun showSkipToast(action: SkipAction) {
-        val message = when (action) {
-            SkipAction.INTRO -> "Pulando abertura"
-            SkipAction.RECAP -> "Pulando resumo"
-            SkipAction.CREDITS -> "Pulando creditos"
-            SkipAction.PREVIEW -> "Pulando previa"
-            SkipAction.NEXT_EPISODE -> "Pulando para o proximo episodio"
+        val messageRes = when (action) {
+            SkipAction.INTRO -> R.string.toast_skipping_intro
+            SkipAction.RECAP -> R.string.toast_skipping_recap
+            SkipAction.CREDITS -> R.string.toast_skipping_credits
+            SkipAction.PREVIEW -> R.string.toast_skipping_preview
+            SkipAction.NEXT_EPISODE -> R.string.toast_skipping_next_episode
         }
         mainHandler.post {
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(messageRes), Toast.LENGTH_SHORT).show()
         }
     }
 

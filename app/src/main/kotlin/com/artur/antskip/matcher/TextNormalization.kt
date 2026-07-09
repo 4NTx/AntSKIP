@@ -5,7 +5,7 @@ import java.util.Locale
 
 private val whitespace = Regex("\\s+")
 private val marks = Regex("\\p{M}+")
-private val unsupported = Regex("[^a-z0-9-]+")
+private val unsupported = Regex("[^\\p{L}\\p{N}-]+")
 
 fun CharSequence?.normalizeForMatch(): String {
     if (isNullOrBlank()) return ""

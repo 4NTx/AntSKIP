@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">AntSKIP</string>
+    <string name="accessibility_service_label">AntSKIP</string>
+    <string name="accessibility_service_description">Toca automaticamente em botoes de pular nos apps de streaming selecionados quando aparecem.</string>
+    <string name="toast_skipping_intro">Pulando abertura</string>
+    <string name="toast_skipping_recap">Pulando resumo</string>
+    <string name="toast_skipping_credits">Pulando creditos</string>
+    <string name="toast_skipping_preview">Pulando previa</string>
+    <string name="toast_skipping_next_episode">Pulando para o proximo episodio</string>
+</resources>

@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">AntSKIP</string>
     <string name="accessibility_service_label">AntSKIP</string>
-    <string name="accessibility_service_description">Toca automaticamente em botoes de pular nos apps de streaming selecionados quando aparecem.</string>
+    <string name="accessibility_service_description">Automatically taps skip buttons in the selected streaming apps when they appear.</string>
+    <string name="toast_skipping_intro">Skipping intro</string>
+    <string name="toast_skipping_recap">Skipping recap</string>
+    <string name="toast_skipping_credits">Skipping credits</string>
+    <string name="toast_skipping_preview">Skipping preview</string>
+    <string name="toast_skipping_next_episode">Skipping to the next episode</string>
 </resources>

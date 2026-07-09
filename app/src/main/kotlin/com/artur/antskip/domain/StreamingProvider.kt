@@ -6,6 +6,7 @@ enum class StreamingProvider(
     val packageName: String,
     val enabledByDefault: Boolean,
     val description: String,
+    val packageAliases: Set<String> = emptySet(),
 ) {
     CRUNCHYROLL(
         "provider_crunchyroll_enabled",
@@ -20,13 +21,18 @@ enum class StreamingProvider(
         "com.netflix.mediaclient",
         true,
         "Reconhece botoes como Pular abertura, Pular recapitulacao e Proximo episodio.",
+        setOf("com.netflix.ninja"),
     ),
     PRIME_VIDEO(
         "provider_prime_video_enabled",
         "Prime Video",
         "com.amazon.avod.thirdpartyclient",
         false,
-        "Experimental. O app muda bastante e pode precisar de ajuste por aparelho.",
+        "Suporte restrito. Comeca com intro, resumo e creditos; proximo episodio fica desligado por seguranca.",
+        setOf(
+            "com.amazon.avod",
+            "com.amazon.amazonvideo.livingroom",
+        ),
     ),
     DISNEY_PLUS(
         "provider_disney_plus_enabled",
@@ -50,8 +56,20 @@ enum class StreamingProvider(
         "Experimental. Incluido para teste com botoes de intro e creditos.",
     );
 
+    fun isActionEnabledByDefault(action: SkipAction): Boolean =
+        when (this) {
+            PRIME_VIDEO -> action in setOf(
+                SkipAction.INTRO,
+                SkipAction.RECAP,
+                SkipAction.CREDITS,
+            )
+            else -> action.enabledByDefault
+        }
+
     companion object {
         fun fromPackageName(packageName: String): StreamingProvider? =
-            entries.firstOrNull { it.packageName == packageName }
+            entries.firstOrNull { provider ->
+                provider.packageName == packageName || packageName in provider.packageAliases
+            }
     }
 }

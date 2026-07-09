@@ -26,7 +26,7 @@ class PreferenceStore(context: Context) {
     }
 
     fun isActionEnabledForProvider(provider: StreamingProvider, action: SkipAction): Boolean =
-        preferences.getBoolean(providerActionKey(provider, action), isActionEnabled(action))
+        preferences.getBoolean(providerActionKey(provider, action), provider.isActionEnabledByDefault(action))
 
     fun setActionEnabledForProvider(provider: StreamingProvider, action: SkipAction, enabled: Boolean) {
         preferences.edit().putBoolean(providerActionKey(provider, action), enabled).apply()

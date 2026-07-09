@@ -47,10 +47,12 @@ class SkipMatcher(
     }
 
     private fun matchAction(text: String, provider: StreamingProvider): SkipAction? =
-        if (provider == StreamingProvider.CRUNCHYROLL) {
-            matchCrunchyrollAction(text)
-        } else {
-            phraseBank.match(text) ?: matchCustomPhrase(text)
+        when {
+            isBlocked(text) -> null
+            provider == StreamingProvider.CRUNCHYROLL -> matchCrunchyrollAction(text)
+            provider == StreamingProvider.NETFLIX -> matchNetflixOrPrimeAction(text) ?: matchDefaultAction(text)
+            provider == StreamingProvider.PRIME_VIDEO -> matchPrimeVideoAction(text) ?: matchCustomPhrase(text)
+            else -> phraseBank.match(text) ?: matchCustomPhrase(text)
         }
 
     private fun isActionAllowed(action: SkipAction, provider: StreamingProvider): Boolean =
@@ -61,9 +63,30 @@ class SkipMatcher(
         }
 
     private fun matchCrunchyrollAction(text: String): SkipAction? =
-        CRUNCHYROLL_PHRASES.entries.firstOrNull { (_, phrases) ->
+        if (text in CRUNCHYROLL_GENERIC_INTRO_PHRASES) {
+            SkipAction.INTRO
+        } else {
+            CRUNCHYROLL_PHRASES.entries.firstOrNull { (_, phrases) ->
+                phrases.any { phrase -> text == phrase || text.contains(phrase) }
+            }?.key
+        }
+
+    private fun matchNetflixOrPrimeAction(text: String): SkipAction? =
+        NETFLIX_PRIME_EXACT_PHRASES.entries.firstOrNull { (_, phrases) ->
+            text in phrases
+        }?.key ?: NETFLIX_PRIME_PHRASES.entries.firstOrNull { (_, phrases) ->
             phrases.any { phrase -> text == phrase || text.contains(phrase) }
         }?.key
+
+    private fun matchPrimeVideoAction(text: String): SkipAction? =
+        PRIME_VIDEO_EXACT_PHRASES.entries.firstOrNull { (_, phrases) ->
+            text in phrases
+        }?.key ?: PRIME_VIDEO_PHRASES.entries.firstOrNull { (_, phrases) ->
+            phrases.any { phrase -> text == phrase || text.contains(phrase) }
+        }?.key
+
+    private fun matchDefaultAction(text: String): SkipAction? =
+        phraseBank.match(text) ?: matchCustomPhrase(text)
 
     private fun matchCustomPhrase(text: String): SkipAction? =
         SkipAction.entries.firstOrNull { action ->
@@ -72,6 +95,12 @@ class SkipMatcher(
                 .filter { it.isNotBlank() }
                 .any { phrase -> text == phrase || text.contains(phrase) }
         }
+
+    private fun isBlocked(text: String): Boolean =
+        preferences.blockedPhrases()
+            .map { it.normalizeForMatch() }
+            .filter { it.isNotBlank() }
+            .any { phrase -> text == phrase || text.contains(phrase) }
 
     private fun AccessibilityNodeInfo.clickCandidates(
         provider: StreamingProvider,
@@ -97,12 +126,20 @@ class SkipMatcher(
     }
 
     private fun AccessibilityNodeInfo.isValidClickTarget(provider: StreamingProvider, rootBounds: Rect): Boolean {
-        if (provider != StreamingProvider.CRUNCHYROLL) return true
+        if (provider != StreamingProvider.CRUNCHYROLL && provider != StreamingProvider.PRIME_VIDEO) return true
         val bounds = Rect()
         getBoundsInScreen(bounds)
         if (bounds.isEmpty || rootBounds.isEmpty) return false
-        return bounds.width() <= rootBounds.width() * MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO &&
-            bounds.height() <= rootBounds.height() * MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO
+        val maxWidthRatio = when (provider) {
+            StreamingProvider.PRIME_VIDEO -> MAX_PRIME_VIDEO_BUTTON_WIDTH_RATIO
+            else -> MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO
+        }
+        val maxHeightRatio = when (provider) {
+            StreamingProvider.PRIME_VIDEO -> MAX_PRIME_VIDEO_BUTTON_HEIGHT_RATIO
+            else -> MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO
+        }
+        return bounds.width() <= rootBounds.width() * maxWidthRatio &&
+            bounds.height() <= rootBounds.height() * maxHeightRatio
     }
 
     private fun AccessibilityNodeInfo.hasClickAction(): Boolean =
@@ -124,6 +161,13 @@ class SkipMatcher(
         const val MAX_VISITED_NODES = 300
         const val MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO = 0.9f
         const val MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO = 0.25f
+        const val MAX_PRIME_VIDEO_BUTTON_WIDTH_RATIO = 0.95f
+        const val MAX_PRIME_VIDEO_BUTTON_HEIGHT_RATIO = 0.35f
+
+        val CRUNCHYROLL_GENERIC_INTRO_PHRASES = setOf(
+            "pular",
+            "skip",
+        )
 
         val CRUNCHYROLL_PHRASES = linkedMapOf(
             SkipAction.INTRO to setOf(
@@ -145,6 +189,125 @@ class SkipMatcher(
                 "skip credits",
                 "skip ending",
                 "skip end credits",
+            ),
+        )
+
+        val NETFLIX_PRIME_EXACT_PHRASES = linkedMapOf(
+            SkipAction.INTRO to setOf(
+                "pular",
+                "skip",
+            ),
+            SkipAction.NEXT_EPISODE to setOf(
+                "proximo",
+                "proxima",
+                "next",
+            ),
+        )
+
+        val NETFLIX_PRIME_PHRASES = linkedMapOf(
+            SkipAction.INTRO to setOf(
+                "pular abertura",
+                "pular a abertura",
+                "pular intro",
+                "pular introducao",
+                "pular a introducao",
+                "skip intro",
+                "skip opening",
+                "skip introduction",
+            ),
+            SkipAction.RECAP to setOf(
+                "pular resumo",
+                "pular o resumo",
+                "pular recap",
+                "pular recapitulacao",
+                "skip recap",
+                "skip recapitulation",
+                "skip previously on",
+            ),
+            SkipAction.CREDITS to setOf(
+                "pular creditos",
+                "pular encerramento",
+                "pular final",
+                "skip credits",
+                "skip ending",
+                "skip end credits",
+                "next episode in",
+                "proximo episodio em",
+            ),
+            SkipAction.PREVIEW to setOf(
+                "pular previa",
+                "pular pre visualizacao",
+                "pular preview",
+                "pular trailer",
+                "skip preview",
+                "skip next preview",
+                "skip trailer",
+            ),
+            SkipAction.NEXT_EPISODE to setOf(
+                "proximo episodio",
+                "proxima parte",
+                "reproduzir proximo",
+                "assistir proximo",
+                "next episode",
+                "play next",
+                "play next episode",
+                "watch next episode",
+                "next up",
+            ),
+        )
+
+        val PRIME_VIDEO_EXACT_PHRASES = linkedMapOf(
+            SkipAction.INTRO to setOf(
+                "pular",
+                "skip",
+            ),
+        )
+
+        val PRIME_VIDEO_PHRASES = linkedMapOf(
+            SkipAction.INTRO to setOf(
+                "pular abertura",
+                "pular a abertura",
+                "pular intro",
+                "pular introducao",
+                "pular a introducao",
+                "skip intro",
+                "skip opening",
+                "skip introduction",
+            ),
+            SkipAction.RECAP to setOf(
+                "pular resumo",
+                "pular o resumo",
+                "pular recap",
+                "pular recapitulacao",
+                "skip recap",
+                "skip recapitulation",
+                "skip previously on",
+            ),
+            SkipAction.CREDITS to setOf(
+                "pular creditos",
+                "pular encerramento",
+                "pular final",
+                "skip credits",
+                "skip ending",
+                "skip end credits",
+                "next episode in",
+                "proximo episodio em",
+            ),
+            SkipAction.PREVIEW to setOf(
+                "pular previa",
+                "pular pre visualizacao",
+                "pular preview",
+                "skip preview",
+                "skip next preview",
+            ),
+            SkipAction.NEXT_EPISODE to setOf(
+                "proximo episodio",
+                "reproduzir proximo",
+                "assistir proximo",
+                "next episode",
+                "play next episode",
+                "watch next episode",
+                "next up",
             ),
         )
     }

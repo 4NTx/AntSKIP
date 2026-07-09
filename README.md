@@ -38,14 +38,13 @@ click when a matching button appears.
 | --- | --- | --- | --- |
 | Crunchyroll | `com.crunchyroll.crunchyroid` | Enabled | Primary support |
 | Netflix | `com.netflix.mediaclient` | Enabled | Primary support |
-| Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Experimental |
+| Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Restricted support |
 | Disney+ | `com.disney.disneyplus` | Disabled | Experimental |
 | Max | `com.wbd.stream` | Disabled | Experimental |
 | Paramount+ | `com.cbs.app` | Disabled | Experimental |
 
-Experimental means the app is monitored and the generic skip actions can work
-when the streaming app exposes accessible button text, but it still needs
-device-by-device testing.
+Restricted support means the app uses provider-specific labels and extra click
+target checks, but the provider still needs to expose accessible button text.
 
 Crunchyroll uses stricter matching than the other providers. It only reacts to
 visible intro/opening labels such as `PULAR INTRODUCAO`, `PULAR ABERTURA`,
@@ -55,6 +54,11 @@ does not tap anime list rows or full-screen player areas.
 Netflix uses the normal phrase bank plus Android accessibility click fallbacks,
 because Netflix can expose the button action on an ancestor node instead of the
 text node itself.
+
+Prime Video uses a stricter provider-specific matcher instead of the generic
+phrase bank. It supports intro, recap, credits, and preview labels by default.
+Next-episode prompts are available in per-app rules, but disabled by default for
+Prime Video because they are easier to confuse with credits or player controls.
 
 ## Supported Skip Actions
 
@@ -77,7 +81,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.12-test-signed.apk
+AntSKIP-v1.13-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android
@@ -99,7 +103,7 @@ screen, such as `Pulando abertura`.
 For the first test, use the safest configuration:
 
 1. Keep `Automation` enabled.
-2. Keep only `Netflix` or `Crunchyroll` enabled.
+2. Keep only `Netflix`, `Crunchyroll`, or `Prime Video` enabled.
 3. Enable only `Intros/openings` while testing.
 4. Play an episode that shows a visible skip-intro button.
 5. Confirm that Android shows `Pulando abertura`.
@@ -216,8 +220,8 @@ Settings > Accessibility > AntSKIP
 ### The button appears but AntSKIP does not tap it
 
 - Confirm the streaming app is enabled in AntSKIP.
-- Confirm the action is enabled globally. For Netflix and experimental
-  providers, also confirm it in `Per-app rules`.
+- Confirm the action is enabled globally. For Netflix, Prime Video, and
+  experimental providers, also confirm it in `Per-app rules`.
 - Add the exact visible label in `Custom phrases`.
 - For Crunchyroll, the strict matcher supports built-in intro, recap, and
   credits labels and does not use custom phrases.
@@ -239,8 +243,8 @@ Settings > Accessibility > AntSKIP
   episodes. Disable `Next episode` for that app if you prefer to manually watch endings.
 - Very generic phrases such as `Next` or `Proximo` can be risky. Prefer per-app
   rules and blocklist phrases when testing.
-- The app currently supports one package name per provider. Forks, TV builds, or
-  region-specific variants may need another package entry.
+- Some providers have package aliases for mobile and TV builds, but forks or
+  region-specific variants may still need another package entry.
 
 ## Build
 

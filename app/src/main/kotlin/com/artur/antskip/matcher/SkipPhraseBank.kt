@@ -3,6 +3,20 @@ package com.artur.antskip.matcher
 import com.artur.antskip.domain.SkipAction
 
 object SkipPhraseBank {
+    private val genericIntroPhrases = normalizedSet(
+        "pular",
+        "skip",
+    )
+
+    private val exactPhrases: Map<SkipAction, Set<String>> = mapOf(
+        SkipAction.INTRO to genericIntroPhrases,
+        SkipAction.NEXT_EPISODE to normalizedSet(
+            "proximo",
+            "proxima",
+            "next",
+        ),
+    )
+
     private val phrases: Map<SkipAction, Set<String>> = mapOf(
         SkipAction.INTRO to normalizedSet(
             "pular abertura",
@@ -11,10 +25,12 @@ object SkipPhraseBank {
             "pular introdução",
             "pular a introducao",
             "pular a introdução",
+            "pular a abertura",
             "saltar intro",
             "saltar abertura",
             "skip intro",
             "skip opening",
+            "skip introduction",
             "skip op",
             "skip theme song",
             "skip title sequence",
@@ -68,14 +84,18 @@ object SkipPhraseBank {
         ),
         SkipAction.RECAP to normalizedSet(
             "pular recap",
+            "pular recapitular",
             "pular recapitulacao",
+            "pular recapitulação",
             "pular recapitulos",
             "pular resumo",
+            "pular o resumo",
             "skip recap",
             "skip recap icon",
             "skip recap button",
             "skip-recap",
             "skip recapitulation",
+            "skip previously on",
             "saltar resumen",
             "saltar recapitulacion",
             "omitir resumen",
@@ -101,10 +121,15 @@ object SkipPhraseBank {
         ),
         SkipAction.CREDITS to normalizedSet(
             "pular creditos",
+            "pular créditos",
             "pular encerramento",
             "pular ending",
             "pular final",
             "pular para o proximo",
+            "pular para o próximo",
+            "proximo episodio em",
+            "próximo episódio em",
+            "next episode in",
             "skip credits",
             "skip ending",
             "skip outro",
@@ -139,9 +164,13 @@ object SkipPhraseBank {
         ),
         SkipAction.PREVIEW to normalizedSet(
             "pular previa",
+            "pular prévia",
             "pular pre visualizacao",
+            "pular pré-visualização",
             "pular preview",
             "pular trailer",
+            "pular previa do proximo",
+            "pular prévia do próximo",
             "skip preview",
             "skip next preview",
             "skip trailer",
@@ -153,16 +182,20 @@ object SkipPhraseBank {
             "preview overslaan",
         ),
         SkipAction.NEXT_EPISODE to normalizedSet(
-            "proximo",
             "proximo episodio",
+            "próximo episódio",
             "proximo ep",
-            "proxima",
             "proxima parte",
             "reproduzir proximo",
+            "reproduzir próximo",
             "assistir proximo",
+            "assistir próximo",
             "next episode",
-            "next",
             "play next",
+            "play next episode",
+            "watch next episode",
+            "watch next up",
+            "next up",
             "watch next",
             "reproduzir proximo",
             "episodio siguiente",
@@ -193,6 +226,7 @@ object SkipPhraseBank {
     fun match(text: String): SkipAction? {
         if (text.isBlank()) return null
         val relaxed = text.replace('-', ' ')
+        exactPhrases.entries.firstOrNull { (_, patterns) -> relaxed in patterns }?.let { return it.key }
         return phrases.entries.firstOrNull { (_, patterns) ->
             patterns.any { pattern -> relaxed == pattern || relaxed.contains(pattern) }
         }?.key
