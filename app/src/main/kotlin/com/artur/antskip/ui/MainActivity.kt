@@ -2,6 +2,7 @@ package com.artur.antskip.ui
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.TimePickerDialog
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -28,6 +29,7 @@ import com.artur.antskip.domain.StreamingProvider
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 
 class MainActivity : Activity() {
     private val preferences by lazy { PreferenceStore(this) }
@@ -275,6 +277,8 @@ class MainActivity : Activity() {
             )
             if (index != SkipAction.entries.lastIndex) list.addView(separator())
         }
+        list.addView(separator())
+        list.addView(nextEpisodeSchedulePanel(provider))
 
         AlertDialog.Builder(this)
             .setTitle("Regras: ${provider.label}")
@@ -283,6 +287,62 @@ class MainActivity : Activity() {
             .setPositiveButton("Fechar") { _, _ -> render() }
             .show()
     }
+
+    private fun nextEpisodeSchedulePanel(provider: StreamingProvider): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(10), 0, dp(4))
+            addView(
+                switchRow(
+                    "Pausar Proximo episodio por horario",
+                    "Durante este periodo, ${provider.label} nao avanca para o proximo episodio automaticamente.",
+                    preferences.isNextEpisodeScheduleEnabled(provider),
+                ) {
+                    preferences.setNextEpisodeScheduleEnabled(provider, it)
+                },
+            )
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, dp(6), 0, 0)
+                    addView(
+                        secondaryButton("Inicio: ${formatMinutes(preferences.nextEpisodeScheduleStartMinutes(provider))}") {
+                            showTimePicker(preferences.nextEpisodeScheduleStartMinutes(provider)) { minutes ->
+                                preferences.setNextEpisodeScheduleStartMinutes(provider, minutes)
+                                showProviderRules(provider)
+                            }
+                        }.apply {
+                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                        },
+                    )
+                    addView(
+                        secondaryButton("Fim: ${formatMinutes(preferences.nextEpisodeScheduleEndMinutes(provider))}") {
+                            showTimePicker(preferences.nextEpisodeScheduleEndMinutes(provider)) { minutes ->
+                                preferences.setNextEpisodeScheduleEndMinutes(provider, minutes)
+                                showProviderRules(provider)
+                            }
+                        }.apply {
+                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                                leftMargin = dp(8)
+                            }
+                        },
+                    )
+                },
+            )
+        }
+
+    private fun showTimePicker(currentMinutes: Int, onSelected: (Int) -> Unit) {
+        TimePickerDialog(
+            this,
+            { _, hour, minute -> onSelected(hour * 60 + minute) },
+            currentMinutes / 60,
+            currentMinutes % 60,
+            true,
+        ).show()
+    }
+
+    private fun formatMinutes(minutes: Int): String =
+        String.format(Locale.US, "%02d:%02d", minutes / 60, minutes % 60)
 
     private fun showActionPicker() {
         val list = LinearLayout(this).apply {

@@ -24,6 +24,8 @@ click when a matching button appears.
 - Lets users enable or disable each skip action independently.
 - Supports per-app action rules. For example, `Next episode` can be enabled for
   Netflix and disabled for Prime Video.
+- Supports a per-app bedtime window for `Next episode`, so automatic episode
+  advance can stop during selected hours.
 - Supports custom phrases per action, so users can teach the app labels from
   any language or app version.
 - Normalizes accents and casing before matching. For example, `Próximo`,
@@ -47,9 +49,9 @@ Restricted support means the app uses provider-specific labels and extra click
 target checks, but the provider still needs to expose accessible button text.
 
 Crunchyroll uses stricter matching than the other providers. It only reacts to
-visible intro/opening labels such as `PULAR INTRODUCAO`, `PULAR ABERTURA`,
-`Skip Intro`, or `Skip Opening`, and rejects large clickable containers so it
-does not tap anime list rows or full-screen player areas.
+explicit visible labels such as `PULAR INTRODUCAO`, `PULAR ABERTURA`,
+`Skip Intro`, `Skip Opening`, or `Next Episode`, and rejects large clickable
+containers so it does not tap anime list rows or full-screen player areas.
 
 Netflix uses the normal phrase bank plus Android accessibility click fallbacks,
 because Netflix can expose the button action on an ancestor node instead of the
@@ -81,7 +83,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.13-test-signed.apk
+AntSKIP-v1.14-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android
@@ -186,10 +188,10 @@ Use `Regras por app` in the app UI to decide which actions are allowed for each
 provider. This is the safest way to reduce false positives on providers other
 than Crunchyroll.
 
-Crunchyroll intentionally ignores per-app action rules and custom phrases in the
-matcher. It follows the global action switches and built-in strict labels for
-intros, recaps, and credits, because generic rules caused false taps while
-browsing the anime list.
+Crunchyroll intentionally ignores custom phrases in the matcher. It follows the
+per-app action rules and built-in strict labels for intros, recaps, credits, and
+next episode, because generic phrases caused false taps while browsing the anime
+list.
 
 Examples:
 

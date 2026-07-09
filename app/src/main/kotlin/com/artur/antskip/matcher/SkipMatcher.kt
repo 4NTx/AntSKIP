@@ -56,10 +56,9 @@ class SkipMatcher(
         }
 
     private fun isActionAllowed(action: SkipAction, provider: StreamingProvider): Boolean =
-        if (provider == StreamingProvider.CRUNCHYROLL) {
-            preferences.isActionEnabled(action)
-        } else {
-            preferences.isActionEnabledForProvider(provider, action)
+        when {
+            action == SkipAction.NEXT_EPISODE && preferences.isNextEpisodeBlockedBySchedule(provider) -> false
+            else -> preferences.isActionEnabledForProvider(provider, action)
         }
 
     private fun matchCrunchyrollAction(text: String): SkipAction? =
@@ -190,6 +189,17 @@ class SkipMatcher(
                 "skip ending",
                 "skip end credits",
             ),
+            SkipAction.NEXT_EPISODE to setOf(
+                "proximo episodio",
+                "proximo episodio em",
+                "proximo ep",
+                "assistir proximo",
+                "reproduzir proximo",
+                "next episode",
+                "next episode in",
+                "play next episode",
+                "watch next episode",
+            ),
         )
 
         val NETFLIX_PRIME_EXACT_PHRASES = linkedMapOf(
@@ -231,8 +241,6 @@ class SkipMatcher(
                 "skip credits",
                 "skip ending",
                 "skip end credits",
-                "next episode in",
-                "proximo episodio em",
             ),
             SkipAction.PREVIEW to setOf(
                 "pular previa",
@@ -245,10 +253,12 @@ class SkipMatcher(
             ),
             SkipAction.NEXT_EPISODE to setOf(
                 "proximo episodio",
+                "proximo episodio em",
                 "proxima parte",
                 "reproduzir proximo",
                 "assistir proximo",
                 "next episode",
+                "next episode in",
                 "play next",
                 "play next episode",
                 "watch next episode",
@@ -290,8 +300,6 @@ class SkipMatcher(
                 "skip credits",
                 "skip ending",
                 "skip end credits",
-                "next episode in",
-                "proximo episodio em",
             ),
             SkipAction.PREVIEW to setOf(
                 "pular previa",
@@ -302,9 +310,11 @@ class SkipMatcher(
             ),
             SkipAction.NEXT_EPISODE to setOf(
                 "proximo episodio",
+                "proximo episodio em",
                 "reproduzir proximo",
                 "assistir proximo",
                 "next episode",
+                "next episode in",
                 "play next episode",
                 "watch next episode",
                 "next up",

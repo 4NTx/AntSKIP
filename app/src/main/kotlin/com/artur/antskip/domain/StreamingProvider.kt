@@ -13,7 +13,7 @@ enum class StreamingProvider(
         "Crunchyroll",
         "com.crunchyroll.crunchyroid",
         true,
-        "Suporte principal. Tenta tocar em abertura, resumo e creditos.",
+        "Suporte principal. Tenta tocar em abertura, resumo, creditos e proximo episodio.",
     ),
     NETFLIX(
         "provider_netflix_enabled",
