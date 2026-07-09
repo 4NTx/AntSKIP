@@ -18,22 +18,43 @@ class AntSkipAccessibilityService : AccessibilityService() {
     private val matcher by lazy { SkipMatcher(preferences) }
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private var lastClickAtMillis = 0L
+    private var lastNoMatchLogAtMillis = 0L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val provider = event?.packageName?.toString()?.let(StreamingProvider::fromPackageName) ?: return
-        if (!preferences.isAutomationEnabled || !preferences.isProviderEnabled(provider)) return
+        if (!preferences.isAutomationEnabled) {
+            logThrottled("event=${event.eventType} provider=${provider.label} ignored=automation_disabled")
+            return
+        }
+        if (!preferences.isProviderEnabled(provider)) {
+            logThrottled("event=${event.eventType} provider=${provider.label} ignored=provider_disabled")
+            return
+        }
 
         val now = SystemClock.elapsedRealtime()
         if (now - lastClickAtMillis < CLICK_COOLDOWN_MS) return
 
-        val root = rootInActiveWindow ?: return
+        val root = rootInActiveWindow ?: run {
+            logThrottled("event=${event.eventType} provider=${provider.label} result=no_active_window")
+            return
+        }
         try {
             val match = matcher.findTarget(root, provider)
-            if (match?.targets?.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) } == true) {
+            if (match == null) {
+                logThrottled("event=${event.eventType} provider=${provider.label} result=no_match")
+                return
+            }
+
+            val clicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
+            preferences.appendDiagnosticLog(
+                "event=${event.eventType} provider=${provider.label} action=${match.action.name} " +
+                    "targets=${match.targets.size} clicked=$clicked visited=${match.visitedNodes} text='${match.matchedText}'",
+            )
+            if (clicked) {
                 lastClickAtMillis = now
                 showSkipToast(match.action)
             }
-            match?.targets?.forEach { it.recycle() }
+            match.targets.forEach { it.recycle() }
         } finally {
             root.recycle()
         }
@@ -54,7 +75,15 @@ class AntSkipAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun logThrottled(message: String) {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastNoMatchLogAtMillis < NO_MATCH_LOG_COOLDOWN_MS) return
+        lastNoMatchLogAtMillis = now
+        preferences.appendDiagnosticLog(message)
+    }
+
     private companion object {
         const val CLICK_COOLDOWN_MS = 3_000L
+        const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
     }
 }

@@ -33,6 +33,8 @@ click when a matching button appears.
 - Normalizes accents and casing before matching. For example, `Próximo`,
   `proximo`, and `PROXIMO` are treated the same.
 - Shows the installed version and checks GitHub Releases for updates.
+- Includes copyable diagnostic logs for accessibility matching and click
+  troubleshooting.
 - Uses a cooldown after each tap to avoid repeated clicks.
 - Runs event-driven through Android Accessibility instead of polling the screen.
 
@@ -85,7 +87,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.16-test-signed.apk
+AntSKIP-v1.17-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android

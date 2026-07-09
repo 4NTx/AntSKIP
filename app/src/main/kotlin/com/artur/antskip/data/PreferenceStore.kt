@@ -3,7 +3,9 @@ package com.artur.antskip.data
 import android.content.Context
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class PreferenceStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
@@ -101,6 +103,23 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(provider.preferenceKey, enabled).apply()
     }
 
+    fun diagnosticLogs(): String =
+        preferences.getString(KEY_DIAGNOSTIC_LOGS, "").orEmpty()
+
+    fun appendDiagnosticLog(message: String) {
+        val line = "${LocalDateTime.now().format(LOG_TIME_FORMATTER)}  $message"
+        val nextLogs = (diagnosticLogs().lineSequence() + line)
+            .filter { it.isNotBlank() }
+            .toList()
+            .takeLast(MAX_DIAGNOSTIC_LOG_LINES)
+            .joinToString("\n")
+        preferences.edit().putString(KEY_DIAGNOSTIC_LOGS, nextLogs).apply()
+    }
+
+    fun clearDiagnosticLogs() {
+        preferences.edit().remove(KEY_DIAGNOSTIC_LOGS).apply()
+    }
+
     private fun customPhraseKey(action: SkipAction): String =
         "custom_phrases_${action.name.lowercase()}"
 
@@ -137,11 +156,15 @@ class PreferenceStore(context: Context) {
         const val PREFERENCES_NAME = "antskip"
         const val KEY_AUTOMATION_ENABLED = "automation_enabled"
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
+        const val KEY_DIAGNOSTIC_LOGS = "diagnostic_logs"
         const val KEY_MIGRATION_VERSION = "migration_version"
         const val CURRENT_MIGRATION_VERSION = 3
         const val MINUTES_PER_DAY = 24 * 60
         const val DEFAULT_SLEEP_START_MINUTES = 23 * 60
         const val DEFAULT_SLEEP_END_MINUTES = 7 * 60
+        const val MAX_DIAGNOSTIC_LOG_LINES = 250
+
+        val LOG_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
         val DEFAULT_BLOCKED_PHRASES = setOf(
             "assistir do inicio",

@@ -3,7 +3,10 @@ package com.artur.antskip.ui
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.TimePickerDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -236,6 +239,7 @@ class MainActivity : Activity() {
             addView(primaryButton("Regras por app") { showProviderPicker() })
             addView(secondaryButton("Ensinar novas frases") { showActionPicker() }.withTopMargin(8))
             addView(secondaryButton("Editar lista de bloqueio") { showBlockListEditor() }.withTopMargin(8))
+            addView(secondaryButton("Logs de diagnostico") { showDiagnosticLogs() }.withTopMargin(8))
         }
 
     private fun privacyNote(): TextView =
@@ -482,6 +486,33 @@ class MainActivity : Activity() {
             }
             .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+    private fun showDiagnosticLogs() {
+        val logs = preferences.diagnosticLogs().ifBlank { "Nenhum log registrado ainda." }
+        val output = TextView(this).apply {
+            text = logs
+            textSize = 12f
+            setTextColor(TEXT_DARK)
+            typeface = Typeface.MONOSPACE
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Logs de diagnostico")
+            .setView(ScrollView(this).apply { addView(output) })
+            .setPositiveButton("Copiar tudo") { _, _ -> copyToClipboard("AntSKIP logs", logs) }
+            .setNeutralButton("Limpar") { _, _ ->
+                preferences.clearDiagnosticLogs()
+                render()
+            }
+            .setNegativeButton("Fechar", null)
+            .show()
+    }
+
+    private fun copyToClipboard(label: String, value: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
     }
 
     private fun switchRow(

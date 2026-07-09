@@ -13,6 +13,8 @@ class SkipMatcher(
     data class MatchResult(
         val targets: List<AccessibilityNodeInfo>,
         val action: SkipAction,
+        val matchedText: String,
+        val visitedNodes: Int,
     )
 
     fun findTarget(root: AccessibilityNodeInfo, provider: StreamingProvider): MatchResult? {
@@ -30,9 +32,13 @@ class SkipMatcher(
             } else {
                 NodeText.from(node)
             }
+            var matchedText = nodeText
             val action = matchAction(nodeText, provider)
                 ?: if (provider == StreamingProvider.CRUNCHYROLL) {
-                    matchCrunchyrollNextEpisodeAction(NodeText.from(node))
+                    val fullNodeText = NodeText.from(node)
+                    matchCrunchyrollNextEpisodeAction(fullNodeText)?.also {
+                        matchedText = fullNodeText
+                    }
                 } else {
                     null
                 }
@@ -40,7 +46,7 @@ class SkipMatcher(
                 val targets = node.clickCandidates(provider, rootBounds)
                 node.recycle()
                 pending.recycleAll()
-                return targets.takeIf { it.isNotEmpty() }?.let { MatchResult(it, action) }
+                return MatchResult(targets, action, matchedText, visited)
             }
 
             addChildren(node, pending)
@@ -126,6 +132,9 @@ class SkipMatcher(
                 when {
                     current.isClickable -> clickableTargets.add(AccessibilityNodeInfo.obtain(current))
                     provider != StreamingProvider.CRUNCHYROLL && current.hasClickAction() -> {
+                        actionTargets.add(AccessibilityNodeInfo.obtain(current))
+                    }
+                    provider == StreamingProvider.CRUNCHYROLL && current.hasClickAction() -> {
                         actionTargets.add(AccessibilityNodeInfo.obtain(current))
                     }
                 }
