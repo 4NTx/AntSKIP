@@ -48,7 +48,7 @@ class SkipMatcher(
 
     private fun matchAction(text: String, provider: StreamingProvider): SkipAction? =
         if (provider == StreamingProvider.CRUNCHYROLL) {
-            matchCrunchyrollIntro(text)
+            matchCrunchyrollAction(text)
         } else {
             phraseBank.match(text) ?: matchCustomPhrase(text)
         }
@@ -60,10 +60,10 @@ class SkipMatcher(
             preferences.isActionEnabledForProvider(provider, action)
         }
 
-    private fun matchCrunchyrollIntro(text: String): SkipAction? =
-        SkipAction.INTRO.takeIf {
-            CRUNCHYROLL_INTRO_PHRASES.any { phrase -> text == phrase || text.contains(phrase) }
-        }
+    private fun matchCrunchyrollAction(text: String): SkipAction? =
+        CRUNCHYROLL_PHRASES.entries.firstOrNull { (_, phrases) ->
+            phrases.any { phrase -> text == phrase || text.contains(phrase) }
+        }?.key
 
     private fun matchCustomPhrase(text: String): SkipAction? =
         SkipAction.entries.firstOrNull { action ->
@@ -125,12 +125,27 @@ class SkipMatcher(
         const val MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO = 0.9f
         const val MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO = 0.25f
 
-        val CRUNCHYROLL_INTRO_PHRASES = setOf(
-            "pular abertura",
-            "pular introducao",
-            "pular a introducao",
-            "skip intro",
-            "skip opening",
+        val CRUNCHYROLL_PHRASES = linkedMapOf(
+            SkipAction.INTRO to setOf(
+                "pular abertura",
+                "pular introducao",
+                "pular a introducao",
+                "skip intro",
+                "skip opening",
+            ),
+            SkipAction.RECAP to setOf(
+                "pular resumo",
+                "pular recapitulacao",
+                "skip recap",
+                "skip recapitulation",
+            ),
+            SkipAction.CREDITS to setOf(
+                "pular creditos",
+                "pular encerramento",
+                "skip credits",
+                "skip ending",
+                "skip end credits",
+            ),
         )
     }
 }

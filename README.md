@@ -77,7 +77,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.11-test-signed.apk
+AntSKIP-v1.12-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android
@@ -183,9 +183,9 @@ provider. This is the safest way to reduce false positives on providers other
 than Crunchyroll.
 
 Crunchyroll intentionally ignores per-app action rules and custom phrases in the
-matcher. It follows only the global `Aberturas e intros` switch and the built-in
-strict intro labels, because generic rules caused false taps while browsing the
-anime list.
+matcher. It follows the global action switches and built-in strict labels for
+intros, recaps, and credits, because generic rules caused false taps while
+browsing the anime list.
 
 Examples:
 
@@ -219,8 +219,8 @@ Settings > Accessibility > AntSKIP
 - Confirm the action is enabled globally. For Netflix and experimental
   providers, also confirm it in `Per-app rules`.
 - Add the exact visible label in `Custom phrases`.
-- For Crunchyroll, the current strict matcher only supports built-in intro
-  labels and does not use custom phrases.
+- For Crunchyroll, the strict matcher supports built-in intro, recap, and
+  credits labels and does not use custom phrases.
 
 ### AntSKIP taps the wrong button
 
