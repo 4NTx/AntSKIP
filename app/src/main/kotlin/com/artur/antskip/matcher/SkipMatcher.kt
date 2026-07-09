@@ -31,6 +31,11 @@ class SkipMatcher(
                 NodeText.from(node)
             }
             val action = matchAction(nodeText, provider)
+                ?: if (provider == StreamingProvider.CRUNCHYROLL) {
+                    matchCrunchyrollNextEpisodeAction(NodeText.from(node))
+                } else {
+                    null
+                }
             if (action != null && isActionAllowed(action, provider)) {
                 val targets = node.clickCandidates(provider, rootBounds)
                 node.recycle()
@@ -72,6 +77,11 @@ class SkipMatcher(
                 phrases.any { phrase -> text == phrase || text.contains(phrase) }
             }?.key
         }
+
+    private fun matchCrunchyrollNextEpisodeAction(text: String): SkipAction? =
+        CRUNCHYROLL_NEXT_EPISODE_PHRASES
+            .takeIf { phrases -> phrases.any { phrase -> text == phrase || text.contains(phrase) } }
+            ?.let { SkipAction.NEXT_EPISODE }
 
     private fun matchNetflixOrPrimeAction(text: String): SkipAction? =
         NETFLIX_PRIME_EXACT_PHRASES.entries.firstOrNull { (_, phrases) ->
@@ -171,6 +181,20 @@ class SkipMatcher(
             "skip",
         )
 
+        val CRUNCHYROLL_NEXT_EPISODE_PHRASES = setOf(
+            "proximo episodio",
+            "proximo episodio em",
+            "proximo ep",
+            "assistir proximo",
+            "reproduzir proximo",
+            "next episode",
+            "next episode in",
+            "play next",
+            "play next episode",
+            "watch next episode",
+            "up next",
+        )
+
         val CRUNCHYROLL_PHRASES = linkedMapOf(
             SkipAction.INTRO to setOf(
                 "pular abertura",
@@ -192,17 +216,7 @@ class SkipMatcher(
                 "skip ending",
                 "skip end credits",
             ),
-            SkipAction.NEXT_EPISODE to setOf(
-                "proximo episodio",
-                "proximo episodio em",
-                "proximo ep",
-                "assistir proximo",
-                "reproduzir proximo",
-                "next episode",
-                "next episode in",
-                "play next episode",
-                "watch next episode",
-            ),
+            SkipAction.NEXT_EPISODE to CRUNCHYROLL_NEXT_EPISODE_PHRASES,
         )
 
         val NETFLIX_PRIME_EXACT_PHRASES = linkedMapOf(
