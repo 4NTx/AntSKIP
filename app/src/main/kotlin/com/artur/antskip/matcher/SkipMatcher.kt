@@ -19,6 +19,7 @@ class SkipMatcher(
 
     fun findTarget(root: AccessibilityNodeInfo, provider: StreamingProvider): MatchResult? {
         var visited = 0
+        var firstMatchWithoutTargets: MatchResult? = null
         val rootBounds = Rect().also(root::getBoundsInScreen)
         val pending = ArrayDeque<AccessibilityNodeInfo>()
         pending.add(AccessibilityNodeInfo.obtain(root))
@@ -44,9 +45,15 @@ class SkipMatcher(
                 }
             if (action != null && isActionAllowed(action, provider)) {
                 val targets = node.clickCandidates(provider, rootBounds)
-                node.recycle()
-                pending.recycleAll()
-                return MatchResult(targets, action, matchedText, visited)
+                val result = MatchResult(targets, action, matchedText, visited)
+                if (targets.isNotEmpty()) {
+                    node.recycle()
+                    pending.recycleAll()
+                    return result
+                }
+                if (firstMatchWithoutTargets == null) {
+                    firstMatchWithoutTargets = result
+                }
             }
 
             addChildren(node, pending)
@@ -54,7 +61,7 @@ class SkipMatcher(
         }
 
         pending.recycleAll()
-        return null
+        return firstMatchWithoutTargets
     }
 
     private fun matchAction(text: String, provider: StreamingProvider): SkipAction? =

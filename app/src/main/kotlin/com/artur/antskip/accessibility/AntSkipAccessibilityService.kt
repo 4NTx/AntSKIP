@@ -39,6 +39,15 @@ class AntSkipAccessibilityService : AccessibilityService() {
             return
         }
         try {
+            val rootProvider = root.packageName?.toString()?.let(StreamingProvider::fromPackageName)
+            if (rootProvider != provider) {
+                logThrottled(
+                    "event=${event.eventType} provider=${provider.label} ignored=active_window_package " +
+                        "rootPackage=${root.packageName}",
+                )
+                return
+            }
+
             val match = matcher.findTarget(root, provider)
             if (match == null) {
                 logThrottled("event=${event.eventType} provider=${provider.label} result=no_match")
@@ -46,10 +55,13 @@ class AntSkipAccessibilityService : AccessibilityService() {
             }
 
             val clicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
-            preferences.appendDiagnosticLog(
-                "event=${event.eventType} provider=${provider.label} action=${match.action.name} " +
-                    "targets=${match.targets.size} clicked=$clicked visited=${match.visitedNodes} text='${match.matchedText}'",
-            )
+            val logLine = "event=${event.eventType} provider=${provider.label} action=${match.action.name} " +
+                "targets=${match.targets.size} clicked=$clicked visited=${match.visitedNodes} text='${match.matchedText}'"
+            if (match.targets.isEmpty()) {
+                logThrottled(logLine)
+            } else {
+                preferences.appendDiagnosticLog(logLine)
+            }
             if (clicked) {
                 lastClickAtMillis = now
                 showSkipToast(match.action)
