@@ -121,11 +121,13 @@ class PreferenceStore(context: Context) {
 
     fun appendDiagnosticLog(message: String) {
         val line = "${LocalDateTime.now().format(LOG_TIME_FORMATTER)}  $message"
-        val nextLogs = (diagnosticLogs().lineSequence() + line)
+        val cutoff = LocalDateTime.now().minusDays(MAX_DIAGNOSTIC_LOG_AGE_DAYS)
+        val retainedLines = (diagnosticLogs().lineSequence() + line)
             .filter { it.isNotBlank() }
+            .filter { it.logTimestamp()?.isBefore(cutoff) != true }
             .toList()
             .takeLast(MAX_DIAGNOSTIC_LOG_LINES)
-            .joinToString("\n")
+        val nextLogs = retainedLines.trimToMaxLogSize().joinToString("\n")
         preferences.edit().putString(KEY_DIAGNOSTIC_LOGS, nextLogs).apply()
     }
 
@@ -153,6 +155,20 @@ class PreferenceStore(context: Context) {
 
     private fun blockCreditsDuringSleepKey(provider: StreamingProvider): String =
         "block_credits_during_sleep_${provider.name.lowercase()}"
+
+    private fun String.logTimestamp(): LocalDateTime? =
+        take(LOG_TIMESTAMP_LENGTH).runCatching { LocalDateTime.parse(this, LOG_TIME_FORMATTER) }.getOrNull()
+
+    private fun List<String>.trimToMaxLogSize(): List<String> {
+        var retained = this
+        while (
+            retained.size > MIN_DIAGNOSTIC_LOG_LINES &&
+            retained.joinToString("\n").length > MAX_DIAGNOSTIC_LOG_CHARS
+        ) {
+            retained = retained.drop(1)
+        }
+        return retained
+    }
 
     private fun migrateCriticalDefaults() {
         val currentVersion = preferences.getInt(KEY_MIGRATION_VERSION, 0)
@@ -201,7 +217,11 @@ class PreferenceStore(context: Context) {
         const val MINUTES_PER_DAY = 24 * 60
         const val DEFAULT_SLEEP_START_MINUTES = 23 * 60
         const val DEFAULT_SLEEP_END_MINUTES = 7 * 60
-        const val MAX_DIAGNOSTIC_LOG_LINES = 250
+        const val MAX_DIAGNOSTIC_LOG_LINES = 180
+        const val MIN_DIAGNOSTIC_LOG_LINES = 40
+        const val MAX_DIAGNOSTIC_LOG_CHARS = 24_000
+        const val MAX_DIAGNOSTIC_LOG_AGE_DAYS = 7L
+        const val LOG_TIMESTAMP_LENGTH = 19
 
         val LOG_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 

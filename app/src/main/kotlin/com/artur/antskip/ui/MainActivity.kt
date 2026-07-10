@@ -74,7 +74,6 @@ class MainActivity : Activity() {
         content.addView(headerPanel())
         content.addView(versionPanel())
         content.addView(sleepProtectionStatusPanel())
-        content.addView(enablePanel())
         content.addView(safeTestPanel())
         content.addView(appsPanel())
         content.addView(actionsPanel())
@@ -92,26 +91,62 @@ class MainActivity : Activity() {
 
     private fun headerPanel(): LinearLayout {
         val enabled = isAccessibilityServiceEnabled()
+        val monitoredApps = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
+        val activeActions = SkipAction.entries.count { preferences.isActionEnabled(it) }
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(text("AntSKIP", 30, bold = true, color = TEXT_DARK))
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+            background = rounded(HERO_SURFACE, dp(18), HERO_STROKE)
+            elevation = dp(4).toFloat()
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { setMargins(0, 0, 0, dp(14)) }
+
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(
+                        text("AntSKIP", 31, bold = true, color = TEXT_DARK).apply {
+                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                        },
+                    )
+                    addView(
+                        statusBadge(
+                            if (preferences.isAutomationEnabled) "Automacao ligada" else "Pausado",
+                            if (preferences.isAutomationEnabled) SUCCESS_DARK else WARNING_DARK,
+                            if (preferences.isAutomationEnabled) SUCCESS_SOFT else WARNING_SOFT,
+                        ),
+                    )
+                },
+            )
+            addView(
+                text(
+                    if (enabled) {
+                        "Controle automatico de botoes de streaming com limites por app, tipo de acao e modo dormir."
+                    } else {
+                        "Ative a acessibilidade para o AntSKIP detectar botoes e seguir exatamente as regras configuradas."
+                    },
+                    15,
+                    color = TEXT_MUTED,
+                ).withPadding(top = 8, bottom = 14),
+            )
             addView(
                 statusBadge(
                     if (enabled) "Acessibilidade ativa" else "Acessibilidade desligada",
                     if (enabled) SUCCESS_DARK else DANGER_DARK,
                     if (enabled) SUCCESS_SOFT else DANGER_SOFT,
-                ).withTopMargin(8),
+                ),
             )
+            addView(metricGrid(monitoredApps, activeActions).withTopMargin(14))
+            addView(primaryButton(if (enabled) "Abrir regras por app" else "Ativar acessibilidade") {
+                if (enabled) showProviderPicker() else startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }.withTopMargin(16))
             addView(
-                text(
-                    if (enabled) {
-                        "O AntSKIP so toca nos apps e tipos de botao que voce deixou ligados abaixo."
-                    } else {
-                        "Ative o servico de acessibilidade para o AntSKIP conseguir detectar e tocar nos botoes."
-                    },
-                    15,
-                    color = TEXT_MUTED,
-                ).withPadding(top = 10, bottom = 14),
+                secondaryButton(if (enabled) "Abrir acessibilidade" else "Permitir configuracoes restritas") {
+                    if (enabled) startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) else openAppInfo()
+                }.withTopMargin(8),
             )
         }
     }
@@ -148,9 +183,10 @@ class MainActivity : Activity() {
                     addView(primaryButton("Abrir download") { openUrl(state.releaseUrl) })
                 }
                 is UpdateState.CheckFailed -> {
-                    addView(statusBadge("Nao foi possivel verificar", DANGER_DARK, DANGER_SOFT))
+                    addView(statusBadge("Verificacao pendente", WARNING_DARK, WARNING_SOFT))
                     addView(text(state.message, 13, color = TEXT_MUTED).withPadding(top = 8, bottom = 10))
-                    addView(secondaryButton("Ver releases") { openUrl(RELEASES_URL) })
+                    addView(primaryButton("Tentar novamente") { retryUpdateCheck() })
+                    addView(secondaryButton("Abrir releases") { openUrl(RELEASES_URL) }.withTopMargin(8))
                 }
             }
         }
@@ -253,7 +289,7 @@ class MainActivity : Activity() {
         panel("5. Ajustes finos").apply {
             addView(
                 text(
-                    "Use quando quiser decidir app por app, ensinar uma frase nova ou bloquear um texto perigoso.",
+                    "Use quando quiser decidir app por app, ensinar uma frase nova, bloquear um texto perigoso ou revisar logs.",
                     14,
                     color = TEXT_MUTED,
                 ).withPadding(bottom = 10),
@@ -262,6 +298,7 @@ class MainActivity : Activity() {
             addView(secondaryButton("Ensinar novas frases") { showActionPicker() }.withTopMargin(8))
             addView(secondaryButton("Editar lista de bloqueio") { showBlockListEditor() }.withTopMargin(8))
             addView(secondaryButton("Logs de diagnostico") { showDiagnosticLogs() }.withTopMargin(8))
+            addView(text("Logs sao limpos automaticamente por idade e tamanho para nao pesar o app.", 12, color = TEXT_MUTED).withPadding(top = 8))
         }
 
     private fun privacyNote(): TextView =
@@ -654,6 +691,7 @@ class MainActivity : Activity() {
 
         AlertDialog.Builder(this)
             .setTitle("Logs de diagnostico")
+            .setMessage("Retencao automatica: ate 7 dias, 180 linhas ou 24 KB.")
             .setView(ScrollView(this).apply { addView(output) })
             .setPositiveButton("Copiar tudo") { _, _ -> copyToClipboard("AntSKIP logs", logs) }
             .setNeutralButton("Limpar") { _, _ ->
@@ -669,6 +707,29 @@ class MainActivity : Activity() {
         clipboard.setPrimaryClip(ClipData.newPlainText(label, value))
     }
 
+    private fun metricGrid(monitoredApps: Int, activeActions: Int): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(metricTile("Apps", "$monitoredApps/${StreamingProvider.entries.size}", "monitorados").weightedTile())
+            addView(metricTile("Acoes", activeActions.toString(), "globais ligadas").weightedTile(leftMargin = 8))
+        }
+
+    private fun metricTile(label: String, value: String, caption: String): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = rounded(Color.WHITE, dp(14), STROKE)
+            addView(text(label, 12, bold = true, color = TEXT_MUTED))
+            addView(text(value, 23, bold = true, color = TEXT_DARK).withPadding(top = 2))
+            addView(text(caption, 12, color = TEXT_MUTED).withPadding(top = 2))
+        }
+
+    private fun LinearLayout.weightedTile(leftMargin: Int = 0): LinearLayout = apply {
+        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+            this.leftMargin = dp(leftMargin)
+        }
+    }
+
     private fun switchRow(
         title: String,
         description: String,
@@ -677,9 +738,11 @@ class MainActivity : Activity() {
     ): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(10), 0, dp(10))
+            setPadding(dp(14), dp(13), dp(14), dp(13))
+            background = rounded(if (checked) RULE_ACTIVE_SOFT else SUBTLE_SURFACE, dp(14), STROKE)
             var currentChecked = checked
             lateinit var stateLabel: TextView
+            val switchCard = this
 
             addView(
                 LinearLayout(context).apply {
@@ -698,6 +761,11 @@ class MainActivity : Activity() {
                             setOnCheckedChangeListener { _, value ->
                                 currentChecked = value
                                 onChanged(value)
+                                switchCard.background = rounded(
+                                    if (value) RULE_ACTIVE_SOFT else SUBTLE_SURFACE,
+                                    dp(14),
+                                    STROKE,
+                                )
                                 stateLabel.setStatePill(globalStateText(value), value)
                             }
                         },
@@ -731,14 +799,14 @@ class MainActivity : Activity() {
     private fun panel(title: String): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(16), dp(18), dp(16))
-            background = rounded(Color.WHITE, dp(10), STROKE)
-            elevation = dp(1).toFloat()
+            setPadding(dp(18), dp(17), dp(18), dp(17))
+            background = rounded(Color.WHITE, dp(16), STROKE)
+            elevation = dp(2).toFloat()
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { setMargins(0, 0, 0, dp(12)) }
-            addView(text(title, 18, bold = true, color = TEXT_DARK).withPadding(bottom = 8))
+            addView(text(title, 19, bold = true, color = TEXT_DARK).withPadding(bottom = 10))
         }
 
     private fun primaryButton(label: String, onClick: () -> Unit): Button =
@@ -754,9 +822,13 @@ class MainActivity : Activity() {
             text = label
             isAllCaps = false
             setTextColor(textColor)
-            textSize = 14f
-            minHeight = dp(50)
-            background = rounded(backgroundColor, dp(10))
+            textSize = 15f
+            typeface = Typeface.DEFAULT_BOLD
+            minHeight = dp(52)
+            minWidth = dp(52)
+            stateListAnimator = null
+            background = rounded(backgroundColor, dp(14))
+            foreground = selectableForeground()
             setOnClickListener { onClick() }
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -804,10 +876,10 @@ class MainActivity : Activity() {
 
     private fun separator(): View =
         View(this).apply {
-            setBackgroundColor(STROKE)
+            setBackgroundColor(Color.TRANSPARENT)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(1),
+                dp(8),
             )
         }
 
@@ -836,34 +908,14 @@ class MainActivity : Activity() {
         if (updateCheckStarted) return
         updateCheckStarted = true
         updateState = UpdateState.Checking
+        render()
         Thread {
-            val result = runCatching {
-                val connection = (URL(LATEST_RELEASE_API_URL).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = UPDATE_TIMEOUT_MS
-                    readTimeout = UPDATE_TIMEOUT_MS
-                    requestMethod = "GET"
-                    setRequestProperty("Accept", "application/vnd.github+json")
-                    setRequestProperty("User-Agent", "AntSKIP/${installedVersionName()}")
+            val result = runCatching { fetchLatestReleaseFromApi() }
+                .recoverCatching { fetchLatestReleaseFromRedirect() }
+                .map { release -> release.toUpdateState() }
+                .getOrElse {
+                    UpdateState.CheckFailed("Nao consegui confirmar a versao agora. Tente novamente ou abra a pagina oficial de releases.")
                 }
-                try {
-                    if (connection.responseCode !in 200..299) {
-                        error("HTTP ${connection.responseCode}")
-                    }
-                    val body = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(body)
-                    val latestVersion = json.getString("tag_name").removePrefix("v")
-                    val releaseUrl = json.getString("html_url")
-                    if (isNewerVersion(latestVersion, installedVersionName())) {
-                        UpdateState.UpdateAvailable(latestVersion, releaseUrl)
-                    } else {
-                        UpdateState.UpToDate(latestVersion)
-                    }
-                } finally {
-                    connection.disconnect()
-                }
-            }.getOrElse {
-                UpdateState.CheckFailed("Confira sua conexao ou abra a pagina de releases manualmente.")
-            }
 
             runOnUiThread {
                 updateState = result
@@ -871,6 +923,66 @@ class MainActivity : Activity() {
             }
         }.start()
     }
+
+    private fun retryUpdateCheck() {
+        updateCheckStarted = false
+        checkForUpdates()
+    }
+
+    private fun fetchLatestReleaseFromApi(): LatestRelease {
+        val connection = (URL(LATEST_RELEASE_API_URL).openConnection() as HttpURLConnection).apply {
+            connectTimeout = UPDATE_TIMEOUT_MS
+            readTimeout = UPDATE_TIMEOUT_MS
+            requestMethod = "GET"
+            setRequestProperty("Accept", "application/vnd.github+json")
+            setRequestProperty("User-Agent", "AntSKIP/${installedVersionName()}")
+        }
+        try {
+            if (connection.responseCode !in 200..299) {
+                error("HTTP ${connection.responseCode}")
+            }
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            val json = JSONObject(body)
+            return LatestRelease(
+                version = json.getString("tag_name").removePrefix("v"),
+                url = json.getString("html_url"),
+            )
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun fetchLatestReleaseFromRedirect(): LatestRelease {
+        val connection = (URL(RELEASES_URL).openConnection() as HttpURLConnection).apply {
+            connectTimeout = UPDATE_TIMEOUT_MS
+            readTimeout = UPDATE_TIMEOUT_MS
+            requestMethod = "GET"
+            instanceFollowRedirects = false
+            setRequestProperty("User-Agent", "AntSKIP/${installedVersionName()}")
+        }
+        try {
+            val responseCode = connection.responseCode
+            if (responseCode !in 300..399) error("HTTP $responseCode")
+            val location = connection.getHeaderField("Location").orEmpty()
+            val releaseUrl = when {
+                location.startsWith("http", ignoreCase = true) -> location
+                location.startsWith("/") -> "https://github.com$location"
+                else -> error("Missing redirect")
+            }
+            val version = releaseUrl.substringAfterLast('/').removePrefix("v")
+            if (version.isBlank() || version == releaseUrl) error("Missing version")
+            return LatestRelease(version = version, url = releaseUrl)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun LatestRelease.toUpdateState(): UpdateState =
+        if (isNewerVersion(version, installedVersionName())) {
+            UpdateState.UpdateAvailable(version, url)
+        } else {
+            UpdateState.UpToDate(version)
+        }
 
     private fun installedVersionName(): String =
         try {
@@ -955,8 +1067,11 @@ class MainActivity : Activity() {
         const val LATEST_RELEASE_API_URL = "https://api.github.com/repos/4NTx/AntSKIP/releases/latest"
         const val RELEASES_URL = "https://github.com/4NTx/AntSKIP/releases/latest"
         const val UPDATE_TIMEOUT_MS = 5_000
-        const val BACKGROUND = 0xFFF6F7F9.toInt()
-        const val TEXT_DARK = 0xFF1F2933.toInt()
+        const val BACKGROUND = 0xFFF3F5F7.toInt()
+        const val HERO_SURFACE = 0xFFFCFCFD.toInt()
+        const val HERO_STROKE = 0xFFD9DEE7.toInt()
+        const val SUBTLE_SURFACE = 0xFFF8FAFC.toInt()
+        const val TEXT_DARK = 0xFF18212D.toInt()
         const val TEXT_MUTED = 0xFF637083.toInt()
         const val ACCENT = 0xFFF47521.toInt()
         const val ACCENT_DARK = 0xFFB84A0D.toInt()
@@ -979,4 +1094,6 @@ class MainActivity : Activity() {
         data class UpdateAvailable(val latestVersion: String, val releaseUrl: String) : UpdateState
         data class CheckFailed(val message: String) : UpdateState
     }
+
+    private data class LatestRelease(val version: String, val url: String)
 }
