@@ -34,6 +34,6 @@ enum class SkipAction(
         "skip_next_episode_enabled",
         "Proximo episodio",
         true,
-        "Liga avanco automatico para outro episodio. Use so se voce quer maratonar sem confirmar.",
+        "Liga o avanco automatico para outro episodio. Use apenas se voce quer continuar sem confirmar.",
     ),
 }

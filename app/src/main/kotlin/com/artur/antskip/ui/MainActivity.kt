@@ -205,7 +205,7 @@ class MainActivity : Activity() {
             addView(step("C", "Abra um episodio com Pular abertura. O app deve mostrar Pulando abertura."))
             addView(
                 warningText(
-                    "Proximo episodio avanca para outro episodio. Ligue so quando quiser esse comportamento.",
+                    "Proximo episodio avanca para outro episodio. Ligue apenas quando quiser continuar sem confirmar.",
                 ).withPadding(top = 8),
             )
         }
@@ -746,7 +746,7 @@ class MainActivity : Activity() {
 
     private fun secondaryButton(label: String, onClick: () -> Unit): Button =
         button(label, Color.WHITE, ACCENT_DARK, onClick).apply {
-            background = rounded(Color.WHITE, dp(8), ACCENT)
+            background = rounded(Color.WHITE, dp(10), ACCENT)
         }
 
     private fun button(label: String, backgroundColor: Int, textColor: Int, onClick: () -> Unit): Button =
@@ -799,7 +799,7 @@ class MainActivity : Activity() {
     private fun warningText(value: String): TextView =
         text(value, 13, bold = true, color = WARNING_DARK).apply {
             setPadding(dp(10), dp(8), dp(10), dp(8))
-            background = rounded(WARNING_SOFT, dp(8), WARNING_STROKE)
+            background = rounded(WARNING_SOFT, dp(10), WARNING_STROKE)
         }
 
     private fun separator(): View =

@@ -20,7 +20,7 @@ enum class StreamingProvider(
         "Netflix",
         "com.netflix.mediaclient",
         true,
-        "Quando ligado, o AntSKIP observa o player da Netflix. Creditos e Proximo episodio ficam ativos por padrao.",
+        "Quando ligado, o AntSKIP observa o player da Netflix. Creditos e Proximo episodio ficam ligados por padrao.",
         setOf("com.netflix.ninja"),
     ),
     PRIME_VIDEO(
@@ -28,7 +28,7 @@ enum class StreamingProvider(
         "Prime Video",
         "com.amazon.avod.thirdpartyclient",
         false,
-        "Quando ligado, observa o Prime Video. Proximo episodio fica desligado por seguranca.",
+        "Quando ligado, o AntSKIP observa o Prime Video. Proximo episodio fica desligado por seguranca.",
         setOf(
             "com.amazon.avod",
             "com.amazon.amazonvideo.livingroom",

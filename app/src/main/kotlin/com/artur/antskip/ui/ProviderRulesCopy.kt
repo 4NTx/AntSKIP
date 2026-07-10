@@ -24,25 +24,25 @@ object ProviderRulesCopy {
     fun guidance(provider: StreamingProvider): String =
         when (provider) {
             StreamingProvider.NETFLIX ->
-                "Netflix vem pronta para intros, recaps, creditos e Proximo. Se quiser assistir finais completos, desligue Creditos."
+                "A Netflix vem configurada para intros, recaps, creditos e Proximo. Para assistir encerramentos completos, desligue Creditos."
             StreamingProvider.PRIME_VIDEO ->
-                "Suporte mais conservador. Mantenha Proximo episodio desligado se notar qualquer clique cedo."
+                "Suporte mais conservador. Mantenha Proximo episodio desligado se notar qualquer avanco antecipado."
             StreamingProvider.CRUNCHYROLL ->
-                "Mais confiavel para intros e recaps. Proximo episodio deve ser ligado so se voce quer avancar sem confirmar."
+                "Mais confiavel para intros e recaps. Proximo episodio deve ficar ligado apenas se voce quer avancar sem confirmar."
             else ->
-                "Experimental. Comece com Aberturas e intros, teste um episodio, depois ligue outras opcoes."
+                "Experimental. Comece com Aberturas e intros, teste um episodio e depois ligue outras opcoes."
         }
 
     fun actionDescription(provider: StreamingProvider, action: SkipAction): String =
         when {
             provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS ->
-                "Ligado: pode tocar em Pular creditos. Desligado: evita avancar antes do fim real do episodio."
+                "Ligado: toca em Pular creditos. Desligado: preserva o encerramento do episodio."
             provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE ->
-                "Ligado: toca no botao final Proximo. Desligado: nunca avanca episodio sozinho na Netflix."
+                "Ligado: toca no botao final Proximo. Desligado: nao avanca episodios sozinho na Netflix."
             provider == StreamingProvider.PRIME_VIDEO && action == SkipAction.NEXT_EPISODE ->
-                "Ligado: tenta avancar episodio no Prime Video. Desligado recomendado para evitar cliques cedo."
+                "Ligado: tenta avancar episodios no Prime Video. Mantenha desligado para evitar cliques antecipados."
             action == SkipAction.NEXT_EPISODE ->
-                "Ligado: pode avancar para outro episodio. Desligado: voce escolhe manualmente quando continuar."
+                "Ligado: avanca para outro episodio. Desligado: voce escolhe manualmente quando continuar."
             else -> action.description
         }
 
@@ -59,11 +59,11 @@ object ProviderRulesCopy {
     fun actionWarning(provider: StreamingProvider, action: SkipAction): String? =
         when {
             provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE ->
-                "Na Netflix, esta opcao deve tocar no Proximo final. Se pular cedo, desligue e mande os logs."
+                "Na Netflix, esta opcao deve tocar no Proximo final. Se houver avanco antecipado, desligue e envie os logs de diagnostico."
             provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS ->
-                "Pode esconder o fim do episodio. Mantenha desligado se voce quer assistir os creditos."
+                "Pode pular parte do encerramento. Desligue se voce prefere assistir os creditos."
             action == SkipAction.NEXT_EPISODE ->
-                "Esta opcao muda de episodio automaticamente."
+                "Esta opcao avanca para outro episodio automaticamente."
             else -> null
         }
 
