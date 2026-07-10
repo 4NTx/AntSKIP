@@ -276,7 +276,7 @@ class MainActivity : Activity() {
     private fun showProviderPicker() {
         val list = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(2), dp(2), dp(2), dp(6))
+            setPadding(dp(2), dp(4), dp(2), dp(8))
         }
         StreamingProvider.entries.forEach { provider ->
             list.addView(providerPickerRow(provider).withTopMargin(8))
@@ -298,18 +298,16 @@ class MainActivity : Activity() {
         list.addView(providerRulesHeader(provider))
         list.addView(sectionTitle("Cliques automaticos").withTopMargin(12))
         SkipAction.entries.forEachIndexed { index, action ->
-            list.addView(
-                ruleSwitchRow(
-                    title = action.label,
-                    description = ProviderRulesCopy.actionDescription(provider, action),
-                    checked = preferences.isActionEnabledForProvider(provider, action),
-                    recommendation = ProviderRulesCopy.actionRecommendation(provider, action),
-                    warning = ProviderRulesCopy.actionWarning(provider, action),
-                ) {
-                    preferences.setActionEnabledForProvider(provider, action, it)
-                },
-            )
-            if (index != SkipAction.entries.lastIndex) list.addView(separator())
+            val ruleRow = ruleSwitchRow(
+                title = action.label,
+                description = ProviderRulesCopy.actionDescription(provider, action),
+                checked = preferences.isActionEnabledForProvider(provider, action),
+                recommendation = ProviderRulesCopy.actionRecommendation(provider, action),
+                warning = ProviderRulesCopy.actionWarning(provider, action),
+            ) {
+                preferences.setActionEnabledForProvider(provider, action, it)
+            }
+            list.addView(if (index == 0) ruleRow else ruleRow.withTopMargin(8))
         }
         list.addView(sectionTitle("Protecao contra maratona acidental").withTopMargin(12))
         list.addView(nextEpisodeSchedulePanel(provider))
@@ -325,12 +323,13 @@ class MainActivity : Activity() {
         val enabled = preferences.isProviderEnabled(provider)
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(Color.WHITE, dp(8), STROKE)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            background = rounded(Color.WHITE, dp(10), STROKE)
+            elevation = dp(1).toFloat()
             foreground = selectableForeground()
             isClickable = true
             isFocusable = true
-            minimumHeight = dp(78)
+            minimumHeight = dp(84)
             contentDescription = "${provider.label}. ${ProviderRulesCopy.summary(provider, preferences)}"
             setOnClickListener { showProviderRules(provider) }
 
@@ -360,8 +359,10 @@ class MainActivity : Activity() {
         val enabled = preferences.isProviderEnabled(provider)
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(12), dp(12), dp(12))
-            background = rounded(if (enabled) SUCCESS_SOFT else DANGER_SOFT, dp(8), if (enabled) SUCCESS_DARK else DANGER_DARK)
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+            background = rounded(if (enabled) SUCCESS_SOFT else DANGER_SOFT, dp(12), if (enabled) SUCCESS_DARK else DANGER_DARK)
+            elevation = dp(1).toFloat()
+            addView(text("Controle de automacao", 18, bold = true, color = TEXT_DARK).withPadding(bottom = 8))
             addView(
                 statusBadge(
                     if (enabled) "App monitorado" else "App desligado",
@@ -384,9 +385,12 @@ class MainActivity : Activity() {
     ): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(12), 0, dp(12))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = rounded(if (checked) RULE_ACTIVE_SOFT else Color.WHITE, dp(10), STROKE)
+            elevation = dp(1).toFloat()
             var currentChecked = checked
             lateinit var stateLabel: TextView
+            val ruleCard = this
 
             addView(
                 LinearLayout(context).apply {
@@ -410,6 +414,7 @@ class MainActivity : Activity() {
                             setOnCheckedChangeListener { _, value ->
                                 currentChecked = value
                                 onChanged(value)
+                                ruleCard.background = rounded(if (value) RULE_ACTIVE_SOFT else Color.WHITE, dp(10), STROKE)
                                 stateLabel.setStatePill(ruleStateText(value), value)
                             }
                         },
@@ -436,7 +441,9 @@ class MainActivity : Activity() {
     private fun nextEpisodeSchedulePanel(provider: StreamingProvider): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(10), 0, dp(4))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = rounded(Color.WHITE, dp(10), STROKE)
+            elevation = dp(1).toFloat()
             addView(temporaryNextEpisodePausePanel(provider))
             addView(separator())
             addView(
@@ -491,7 +498,7 @@ class MainActivity : Activity() {
     private fun temporaryNextEpisodePausePanel(provider: StreamingProvider): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(10))
+            setPadding(0, 0, 0, dp(12))
             val pauseUntil = preferences.nextEpisodePauseUntilMillis(provider)
             val isPaused = pauseUntil > System.currentTimeMillis()
             addView(
@@ -724,8 +731,9 @@ class MainActivity : Activity() {
     private fun panel(title: String): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(14), dp(16), dp(14))
-            background = rounded(Color.WHITE, dp(8), STROKE)
+            setPadding(dp(18), dp(16), dp(18), dp(16))
+            background = rounded(Color.WHITE, dp(10), STROKE)
+            elevation = dp(1).toFloat()
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -747,8 +755,8 @@ class MainActivity : Activity() {
             isAllCaps = false
             setTextColor(textColor)
             textSize = 14f
-            minHeight = dp(48)
-            background = rounded(backgroundColor, dp(8))
+            minHeight = dp(50)
+            background = rounded(backgroundColor, dp(10))
             setOnClickListener { onClick() }
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -954,6 +962,7 @@ class MainActivity : Activity() {
         const val ACCENT_DARK = 0xFFB84A0D.toInt()
         const val SUCCESS_DARK = 0xFF127A3A.toInt()
         const val SUCCESS_SOFT = 0xFFE1F6E8.toInt()
+        const val RULE_ACTIVE_SOFT = 0xFFF3FBF6.toInt()
         const val DANGER_DARK = 0xFF9F1D1D.toInt()
         const val DANGER_SOFT = 0xFFFFE4E4.toInt()
         const val WARNING_DARK = 0xFF7A4B00.toInt()
