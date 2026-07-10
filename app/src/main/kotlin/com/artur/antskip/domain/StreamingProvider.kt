@@ -13,14 +13,14 @@ enum class StreamingProvider(
         "Crunchyroll",
         "com.crunchyroll.crunchyroid",
         true,
-        "Suporte principal. Tenta tocar em abertura, resumo, creditos e proximo episodio.",
+        "Quando ligado, o AntSKIP observa o player do Crunchyroll e toca apenas nos tipos de botao permitidos.",
     ),
     NETFLIX(
         "provider_netflix_enabled",
         "Netflix",
         "com.netflix.mediaclient",
         true,
-        "Reconhece botoes como Pular abertura, Pular recapitulacao e Proximo episodio.",
+        "Quando ligado, o AntSKIP observa o player da Netflix. Proximo episodio e creditos ficam mais restritos por seguranca.",
         setOf("com.netflix.ninja"),
     ),
     PRIME_VIDEO(
@@ -28,7 +28,7 @@ enum class StreamingProvider(
         "Prime Video",
         "com.amazon.avod.thirdpartyclient",
         false,
-        "Suporte restrito. Comeca com intro, resumo e creditos; proximo episodio fica desligado por seguranca.",
+        "Quando ligado, observa o Prime Video. Proximo episodio fica desligado por seguranca.",
         setOf(
             "com.amazon.avod",
             "com.amazon.amazonvideo.livingroom",
@@ -39,21 +39,21 @@ enum class StreamingProvider(
         "Disney+",
         "com.disney.disneyplus",
         false,
-        "Experimental. Depende dos textos expostos pelo app para acessibilidade.",
+        "Experimental. So funciona quando o app mostra textos acessiveis nos botoes.",
     ),
     MAX(
         "provider_max_enabled",
         "Max",
         "com.wbd.stream",
         false,
-        "Experimental. Usa os mesmos tipos de skip quando o botao aparece.",
+        "Experimental. So toca nos tipos de botao que voce deixar ligados.",
     ),
     PARAMOUNT_PLUS(
         "provider_paramount_plus_enabled",
         "Paramount+",
         "com.cbs.app",
         false,
-        "Experimental. Incluido para teste com botoes de intro e creditos.",
+        "Experimental. Incluido para testar botoes de intro, recap e creditos.",
     );
 
     fun isActionEnabledByDefault(action: SkipAction): Boolean =

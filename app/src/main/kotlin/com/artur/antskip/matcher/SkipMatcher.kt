@@ -22,6 +22,11 @@ class SkipMatcher(
         var visited = 0
         var firstMatchWithoutTargets: MatchResult? = null
         val rootBounds = Rect().also(root::getBoundsInScreen)
+        val rootContextText = if (provider == StreamingProvider.NETFLIX) {
+            collectRootContextText(root)
+        } else {
+            ""
+        }
         val pending = ArrayDeque<AccessibilityNodeInfo>()
         pending.add(AccessibilityNodeInfo.obtain(root))
 
@@ -35,7 +40,7 @@ class SkipMatcher(
                 NodeText.from(node)
             }
             var matchedText = nodeText
-            val action = matchAction(nodeText, provider)
+            val action = matchAction(nodeText, provider, rootContextText)
                 ?: if (provider == StreamingProvider.CRUNCHYROLL) {
                     val fullNodeText = NodeText.from(node)
                     matchCrunchyrollNextEpisodeAction(fullNodeText)?.also {
@@ -66,11 +71,15 @@ class SkipMatcher(
         return firstMatchWithoutTargets
     }
 
-    private fun matchAction(text: String, provider: StreamingProvider): SkipAction? =
+    private fun matchAction(
+        text: String,
+        provider: StreamingProvider,
+        rootContextText: String,
+    ): SkipAction? =
         when {
             isBlocked(text) -> null
             provider == StreamingProvider.CRUNCHYROLL -> matchCrunchyrollAction(text)
-            provider == StreamingProvider.NETFLIX -> matchNetflixOrPrimeAction(text) ?: matchDefaultAction(text)
+            provider == StreamingProvider.NETFLIX -> matchNetflixAction(text, rootContextText) ?: matchNetflixCustomAction(text, rootContextText)
             provider == StreamingProvider.PRIME_VIDEO -> matchPrimeVideoAction(text) ?: matchCustomPhrase(text)
             else -> phraseBank.match(text) ?: matchCustomPhrase(text)
         }
@@ -104,6 +113,31 @@ class SkipMatcher(
         }?.key ?: NETFLIX_PRIME_PHRASES.entries.firstOrNull { (_, phrases) ->
             phrases.any { phrase -> text == phrase || text.contains(phrase) }
         }?.key
+
+    private fun matchNetflixAction(text: String, rootContextText: String): SkipAction? {
+        if (text == NETFLIX_FINAL_NEXT_BUTTON_PHRASE_PT_BR) return SkipAction.NEXT_EPISODE
+        val action = matchNetflixOrPrimeAction(text) ?: return null
+        if (action != SkipAction.NEXT_EPISODE) return action
+        if (!hasNetflixEndPromptContext(rootContextText)) return null
+        return if (text in NETFLIX_FINAL_NEXT_BUTTON_PHRASES ||
+            NETFLIX_FINAL_NEXT_EPISODE_PHRASES.any { phrase -> text == phrase || text.contains(phrase) }
+        ) {
+            SkipAction.NEXT_EPISODE
+        } else {
+            null
+        }
+    }
+
+    private fun matchNetflixCustomAction(text: String, rootContextText: String): SkipAction? {
+        val action = matchCustomPhrase(text) ?: return null
+        if (action != SkipAction.NEXT_EPISODE) return action
+        return action.takeIf { hasNetflixEndPromptContext(rootContextText) }
+    }
+
+    private fun hasNetflixEndPromptContext(rootContextText: String): Boolean =
+        NETFLIX_END_PROMPT_CONTEXT_PHRASES.any { phrase ->
+            rootContextText == phrase || rootContextText.contains(phrase)
+        }
 
     private fun matchPrimeVideoAction(text: String): SkipAction? =
         PRIME_VIDEO_EXACT_PHRASES.entries.firstOrNull { (_, phrases) ->
@@ -179,6 +213,22 @@ class SkipMatcher(
         repeat(node.childCount) { index ->
             node.getChild(index)?.let { pending.add(it) }
         }
+    }
+
+    private fun collectRootContextText(root: AccessibilityNodeInfo): String {
+        val parts = mutableListOf<String>()
+        var visited = 0
+        val pending = ArrayDeque<AccessibilityNodeInfo>()
+        pending.add(AccessibilityNodeInfo.obtain(root))
+        while (pending.isNotEmpty() && visited < MAX_VISITED_NODES) {
+            val node = pending.removeFirst()
+            visited++
+            NodeText.visibleFrom(node).takeIf { it.isNotBlank() }?.let(parts::add)
+            addChildren(node, pending)
+            node.recycle()
+        }
+        pending.recycleAll()
+        return parts.joinToString(" ").normalizeForMatch()
     }
 
     private fun ArrayDeque<AccessibilityNodeInfo>.recycleAll() {
@@ -282,13 +332,30 @@ class SkipMatcher(
                 "skip trailer",
             ),
             SkipAction.NEXT_EPISODE to setOf(
-                "proximo episodio",
                 "proximo episodio em",
                 "next episode",
                 "next episode in",
                 "play next episode",
                 "watch next episode",
             ),
+        )
+
+        val NETFLIX_END_PROMPT_CONTEXT_PHRASES = setOf(
+            "proximo episodio em",
+            "proximo em",
+            "next episode in",
+            "next in",
+        )
+
+        val NETFLIX_FINAL_NEXT_BUTTON_PHRASES = setOf(
+            "next",
+        )
+
+        const val NETFLIX_FINAL_NEXT_BUTTON_PHRASE_PT_BR = "proximo"
+
+        val NETFLIX_FINAL_NEXT_EPISODE_PHRASES = setOf(
+            "play next episode",
+            "watch next episode",
         )
 
         val PRIME_VIDEO_EXACT_PHRASES = linkedMapOf(

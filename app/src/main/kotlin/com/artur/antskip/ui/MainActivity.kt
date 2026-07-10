@@ -104,7 +104,7 @@ class MainActivity : Activity() {
             addView(
                 text(
                     if (enabled) {
-                        "O app esta pronto para tocar nos botoes permitidos quando eles aparecerem."
+                        "O AntSKIP so toca nos apps e tipos de botao que voce deixou ligados abaixo."
                     } else {
                         "Ative o servico de acessibilidade para o AntSKIP conseguir detectar e tocar nos botoes."
                     },
@@ -160,7 +160,7 @@ class MainActivity : Activity() {
             addView(
                 text(
                     if (enabled) {
-                        "Acessibilidade ja esta ativa. Use estes botoes se precisar revisar permissao ou liberar configuracoes restritas."
+                        "Acessibilidade ativa. O app ainda respeita as chaves de automacao, apps e tipos de botao abaixo."
                     } else {
                         "Primeiro ative o servico AntSKIP. Se o Android mostrar configuracoes restritas, abra as informacoes do app e permita."
                     },
@@ -204,7 +204,7 @@ class MainActivity : Activity() {
             addView(step("C", "Abra um episodio com Pular abertura. O app deve mostrar Pulando abertura."))
             addView(
                 warningText(
-                    "Proximo episodio e mais arriscado porque alguns apps usam textos genericos como Proximo ou Next.",
+                    "Proximo episodio avanca para outro episodio. Ligue so quando quiser esse comportamento.",
                 ).withPadding(top = 8),
             )
         }
@@ -214,7 +214,7 @@ class MainActivity : Activity() {
             addView(
                 switchRow(
                     "Automacao ligada",
-                    "Pausa ou libera todos os cliques automaticos sem apagar suas regras.",
+                    "Ligado: permite cliques automaticos. Desligado: pausa tudo sem apagar suas regras.",
                     preferences.isAutomationEnabled,
                 ) { preferences.setAutomationEnabled(it) },
             )
@@ -233,7 +233,7 @@ class MainActivity : Activity() {
         panel("4. Padroes globais").apply {
             addView(
                 text(
-                    "Estes sao os padroes. Se uma regra por app for alterada, ela vence este padrao global.",
+                    "Estes padroes valem para apps sem regra propria. Em Regras por app, a escolha de cada app vence o padrao global.",
                     14,
                     color = TEXT_MUTED,
                 ).withPadding(bottom = 8),
@@ -252,7 +252,7 @@ class MainActivity : Activity() {
         panel("5. Ajustes finos").apply {
             addView(
                 text(
-                    "Use quando algo nao clicar ou quando clicar no botao errado.",
+                    "Use quando quiser decidir app por app, ensinar uma frase nova ou bloquear um texto perigoso.",
                     14,
                     color = TEXT_MUTED,
                 ).withPadding(bottom = 10),
@@ -283,7 +283,7 @@ class MainActivity : Activity() {
 
         AlertDialog.Builder(this)
             .setTitle("Regras por app")
-            .setMessage("Escolha um app para decidir quais acoes ele pode executar.")
+            .setMessage("Escolha exatamente o que cada app pode tocar. Essas regras vencem os padroes globais.")
             .setView(ScrollView(this).apply { addView(list) })
             .setNegativeButton("Fechar", null)
             .show()
@@ -298,7 +298,7 @@ class MainActivity : Activity() {
             list.addView(
                 switchRow(
                     action.label,
-                    action.description,
+                    providerActionDescription(provider, action),
                     preferences.isActionEnabledForProvider(provider, action),
                 ) {
                     preferences.setActionEnabledForProvider(provider, action, it)
@@ -311,7 +311,7 @@ class MainActivity : Activity() {
 
         AlertDialog.Builder(this)
             .setTitle("Regras: ${provider.label}")
-            .setMessage("Estas regras valem so para ${provider.label} e vencem os padroes globais.")
+            .setMessage("Ligado permite esse clique automatico em ${provider.label}. Desligado impede esse tipo de clique so neste app.")
             .setView(ScrollView(this).apply { addView(list) })
             .setPositiveButton("Fechar") { _, _ -> render() }
             .show()
@@ -326,7 +326,7 @@ class MainActivity : Activity() {
             addView(
                 switchRow(
                     "Protecao forte ao dormir",
-                    "Enquanto o modo dormir estiver ativo, tambem bloqueia Pular creditos para reduzir avanco acidental.",
+                    "Ligado: enquanto o modo dormir estiver ativo, tambem bloqueia creditos para reduzir avanco acidental.",
                     preferences.blocksCreditsDuringSleep(provider),
                 ) {
                     preferences.setBlocksCreditsDuringSleep(provider, it)
@@ -336,7 +336,7 @@ class MainActivity : Activity() {
             addView(
                 switchRow(
                     "Pausar Proximo episodio por horario",
-                    "Repete todos os dias durante este periodo.",
+                    "Ligado: bloqueia avanco automatico para outro episodio todos os dias neste horario.",
                     preferences.isNextEpisodeScheduleEnabled(provider),
                 ) {
                     preferences.setNextEpisodeScheduleEnabled(provider, it)
@@ -575,6 +575,27 @@ class MainActivity : Activity() {
                 },
             )
             addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 4))
+            addView(
+                text(
+                    if (checked) "Estado atual: ligado." else "Estado atual: desligado.",
+                    12,
+                    bold = true,
+                    color = if (checked) SUCCESS_DARK else TEXT_MUTED,
+                ).withPadding(top = 4),
+            )
+        }
+
+    private fun providerActionDescription(provider: StreamingProvider, action: SkipAction): String =
+        when {
+            provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS ->
+                "Ligado: pode tocar em Pular creditos. Desligado: evita avancar antes do fim real do episodio."
+            provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE ->
+                "Ligado: toca no botao final Proximo. Desligado: nunca avanca episodio sozinho na Netflix."
+            provider == StreamingProvider.PRIME_VIDEO && action == SkipAction.NEXT_EPISODE ->
+                "Ligado: tenta avancar episodio no Prime Video. Desligado recomendado para evitar cliques cedo."
+            action == SkipAction.NEXT_EPISODE ->
+                "Ligado: pode avancar para outro episodio. Desligado: voce escolhe manualmente quando continuar."
+            else -> action.description
         }
 
     private fun step(number: String, value: String): LinearLayout =

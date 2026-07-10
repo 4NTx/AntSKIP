@@ -63,7 +63,9 @@ Netflix uses provider-specific labels plus Android accessibility click
 fallbacks, because Netflix can expose the button action on an ancestor node
 instead of the text node itself. Automatic `Credits` and `Next episode` are
 disabled by default for Netflix to avoid unwanted episode advance, and Netflix
-next-episode matching ignores generic labels such as `Next` or `Proximo`.
+next-episode matching ignores persistent controls such as `Proximo episodio` /
+`Prox. ep.`. In Portuguese, the intended end-of-episode target is the exact
+`Proximo` button.
 
 Prime Video uses a stricter provider-specific matcher instead of the generic
 phrase bank. It supports intro, recap, credits, and preview labels by default.
