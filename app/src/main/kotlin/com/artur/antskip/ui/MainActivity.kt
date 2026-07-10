@@ -15,6 +15,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -326,9 +327,11 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(10))
             background = rounded(Color.WHITE, dp(8), STROKE)
+            foreground = selectableForeground()
             isClickable = true
             isFocusable = true
             minimumHeight = dp(78)
+            contentDescription = "${provider.label}. ${providerRuleSummary(provider)}"
             setOnClickListener { showProviderRules(provider) }
 
             addView(
@@ -344,7 +347,7 @@ class MainActivity : Activity() {
                         statusBadge(
                             if (enabled) "Monitorado" else "Desligado",
                             if (enabled) SUCCESS_DARK else TEXT_MUTED,
-                            if (enabled) SUCCESS_SOFT else Color.WHITE,
+                            if (enabled) SUCCESS_SOFT else DISABLED_SOFT,
                         ),
                     )
                 },
@@ -403,11 +406,11 @@ class MainActivity : Activity() {
                         Switch(context).apply {
                             minWidth = dp(56)
                             isChecked = checked
+                            contentDescription = "$title em regras por app"
                             setOnCheckedChangeListener { _, value ->
                                 currentChecked = value
                                 onChanged(value)
-                                stateLabel.text = ruleStateText(value)
-                                stateLabel.setTextColor(if (value) SUCCESS_DARK else TEXT_MUTED)
+                                stateLabel.setStatePill(ruleStateText(value), value)
                             }
                         },
                     )
@@ -415,8 +418,7 @@ class MainActivity : Activity() {
             )
             addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 6))
             warning?.let { addView(warningText(it).withPadding(top = 8)) }
-            stateLabel = text(ruleStateText(currentChecked), 12, bold = true, color = if (checked) SUCCESS_DARK else TEXT_MUTED)
-                .withPadding(top = 6)
+            stateLabel = statePill(ruleStateText(currentChecked), checked).withTopMargin(6)
             addView(stateLabel)
         }
 
@@ -736,23 +738,18 @@ class MainActivity : Activity() {
                         Switch(context).apply {
                             minWidth = dp(56)
                             isChecked = checked
+                            contentDescription = title
                             setOnCheckedChangeListener { _, value ->
                                 currentChecked = value
                                 onChanged(value)
-                                stateLabel.text = globalStateText(value)
-                                stateLabel.setTextColor(if (value) SUCCESS_DARK else TEXT_MUTED)
+                                stateLabel.setStatePill(globalStateText(value), value)
                             }
                         },
                     )
                 },
             )
             addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 4))
-            stateLabel = text(
-                globalStateText(currentChecked),
-                12,
-                bold = true,
-                color = if (checked) SUCCESS_DARK else TEXT_MUTED,
-            ).withPadding(top = 4)
+            stateLabel = statePill(globalStateText(currentChecked), checked).withTopMargin(4)
             addView(stateLabel)
         }
 
@@ -838,6 +835,22 @@ class MainActivity : Activity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
         }
+
+    private fun statePill(label: String, active: Boolean): TextView =
+        text(label, 12, bold = true, color = if (active) SUCCESS_DARK else TEXT_MUTED).apply {
+            setPadding(dp(10), dp(5), dp(10), dp(5))
+            background = rounded(if (active) SUCCESS_SOFT else DISABLED_SOFT, dp(14))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+        }
+
+    private fun TextView.setStatePill(label: String, active: Boolean) {
+        text = label
+        setTextColor(if (active) SUCCESS_DARK else TEXT_MUTED)
+        background = rounded(if (active) SUCCESS_SOFT else DISABLED_SOFT, dp(14))
+    }
 
     private fun warningText(value: String): TextView =
         text(value, 13, bold = true, color = WARNING_DARK).apply {
@@ -955,6 +968,12 @@ class MainActivity : Activity() {
             if (strokeColor != null) setStroke(dp(1), strokeColor)
         }
 
+    private fun selectableForeground(): android.graphics.drawable.Drawable? {
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+        return getDrawable(outValue.resourceId)
+    }
+
     private fun ScrollView.applySystemBarPadding() {
         setOnApplyWindowInsetsListener { view, insets ->
             view.setPadding(
@@ -1004,6 +1023,7 @@ class MainActivity : Activity() {
         const val WARNING_DARK = 0xFF7A4B00.toInt()
         const val WARNING_SOFT = 0xFFFFF4D8.toInt()
         const val WARNING_STROKE = 0xFFFFD990.toInt()
+        const val DISABLED_SOFT = 0xFFF1F3F5.toInt()
         const val STROKE = 0xFFE3E7ED.toInt()
     }
 
