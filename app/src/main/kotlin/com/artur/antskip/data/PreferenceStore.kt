@@ -180,6 +180,12 @@ class PreferenceStore(context: Context) {
             editor.putBoolean(netflixCreditsKey, false)
         }
 
+        if (currentVersion < 6) {
+            editor
+                .putBoolean(providerActionKey(StreamingProvider.NETFLIX, SkipAction.CREDITS), true)
+                .putBoolean(providerActionKey(StreamingProvider.NETFLIX, SkipAction.NEXT_EPISODE), true)
+        }
+
         editor
             .putInt(KEY_MIGRATION_VERSION, CURRENT_MIGRATION_VERSION)
             .apply()
@@ -191,7 +197,7 @@ class PreferenceStore(context: Context) {
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
         const val KEY_DIAGNOSTIC_LOGS = "diagnostic_logs"
         const val KEY_MIGRATION_VERSION = "migration_version"
-        const val CURRENT_MIGRATION_VERSION = 5
+        const val CURRENT_MIGRATION_VERSION = 6
         const val MINUTES_PER_DAY = 24 * 60
         const val DEFAULT_SLEEP_START_MINUTES = 23 * 60
         const val DEFAULT_SLEEP_END_MINUTES = 7 * 60

@@ -24,7 +24,7 @@ object ProviderRulesCopy {
     fun guidance(provider: StreamingProvider): String =
         when (provider) {
             StreamingProvider.NETFLIX ->
-                "Para evitar pulo cedo, deixe Creditos desligado. Proximo episodio usa o botao final Proximo."
+                "Netflix vem pronta para intros, recaps, creditos e Proximo. Se quiser assistir finais completos, desligue Creditos."
             StreamingProvider.PRIME_VIDEO ->
                 "Suporte mais conservador. Mantenha Proximo episodio desligado se notar qualquer clique cedo."
             StreamingProvider.CRUNCHYROLL ->
@@ -48,8 +48,8 @@ object ProviderRulesCopy {
 
     fun actionRecommendation(provider: StreamingProvider, action: SkipAction): String? =
         when {
-            provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS -> "Recomendado desligado"
-            provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE -> "Opcional para maratona"
+            provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS -> "Ligado por padrao"
+            provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE -> "Ligado por padrao"
             provider == StreamingProvider.PRIME_VIDEO && action == SkipAction.NEXT_EPISODE -> "Recomendado desligado"
             action == SkipAction.PREVIEW -> "Opcional"
             action in setOf(SkipAction.INTRO, SkipAction.RECAP) -> "Recomendado ligado"

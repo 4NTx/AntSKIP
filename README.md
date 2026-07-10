@@ -17,13 +17,13 @@ click when a matching button appears.
 ## Features
 
 - Automatically skips intros/openings, recaps, credits/endings, previews, and
-  next-episode prompts.
+  next-episode prompts when the selected app exposes an accessible button.
 - Shows an on-screen confirmation such as `Pulando abertura` after a successful
   automatic tap.
 - Lets users enable or disable each streaming app independently.
 - Lets users enable or disable each skip action independently.
-- Supports per-app action rules. For example, `Next episode` can be enabled only
-  for the apps where you explicitly want automatic episode advance.
+- Supports per-app action rules with clear summaries, status indicators, and
+  provider-specific guidance.
 - Supports a per-app bedtime window for `Next episode`, so automatic episode
   advance can stop during selected hours.
 - Supports one-time `Next episode` pauses per app, such as pausing for 1, 2, or
@@ -45,7 +45,7 @@ click when a matching button appears.
 | App | Android package | Default | Status |
 | --- | --- | --- | --- |
 | Crunchyroll | `com.crunchyroll.crunchyroid` | Enabled | Primary support |
-| Netflix | `com.netflix.mediaclient` | Enabled | Primary support; credits and next episode off by default |
+| Netflix | `com.netflix.mediaclient` | Enabled | Primary support; credits and next episode on by default |
 | Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Restricted support |
 | Disney+ | `com.disney.disneyplus` | Disabled | Experimental |
 | Max | `com.wbd.stream` | Disabled | Experimental |
@@ -61,11 +61,10 @@ containers so it does not tap anime list rows or full-screen player areas.
 
 Netflix uses provider-specific labels plus Android accessibility click
 fallbacks, because Netflix can expose the button action on an ancestor node
-instead of the text node itself. Automatic `Credits` and `Next episode` are
-disabled by default for Netflix to avoid unwanted episode advance, and Netflix
-next-episode matching ignores persistent controls such as `Proximo episodio` /
-`Prox. ep.`. In Portuguese, the intended end-of-episode target is the exact
-`Proximo` button.
+instead of the text node itself. Netflix has `Credits` and `Next episode`
+enabled by default. Its next-episode matcher avoids persistent controls such as
+`Proximo episodio` / `Prox. ep.` and targets the final Portuguese `Proximo`
+button.
 
 Prime Video uses a stricter provider-specific matcher instead of the generic
 phrase bank. It supports intro, recap, credits, and preview labels by default.
@@ -78,9 +77,9 @@ Prime Video because they are easier to confuse with credits or player controls.
 | --- | --- | --- |
 | Intros/openings | Enabled | `Pular abertura`, `Skip Intro`, `Skip Opening` |
 | Recaps/summaries | Enabled | `Pular resumo`, `Pular recapitulacao`, `Skip Recap` |
-| Credits/endings | Enabled globally; disabled by default for Netflix | `Pular creditos`, `Skip Credits`, `Skip Ending` |
+| Credits/endings | Enabled | `Pular creditos`, `Skip Credits`, `Skip Ending` |
 | Previews | Disabled | `Pular previa`, `Skip Preview`, `Skip Trailer` |
-| Next episode | Enabled globally; disabled by default for Netflix and Prime Video | `Proximo episodio`, `Next Episode`, `Play Next Episode` |
+| Next episode | Enabled globally; disabled by default for Prime Video | `Proximo`, `Next Episode`, `Play Next Episode` |
 
 The built-in phrase bank includes common labels in Portuguese, English, Spanish,
 French, German, Italian, Dutch, Polish, Japanese, Korean, Chinese, and Turkish.
@@ -93,7 +92,7 @@ For manual installation from GitHub, download the signed APK from the latest
 release:
 
 ```text
-AntSKIP-v1.21-test-signed.apk
+AntSKIP-v1.28-test-signed.apk
 ```
 
 Do not install `app-release-unsigned.apk` directly. It is not signed and Android
@@ -121,8 +120,9 @@ For the first test, use the safest configuration:
 5. Confirm that Android shows `Pulando abertura`.
 
 After that works, enable `Recaps/summaries`, `Credits/endings`, or
-`Next episode` one at a time. `Next episode` is intentionally the riskiest
-action because some apps use generic labels such as `Next` or `Proximo`.
+`Next episode` one at a time on providers you are still testing. Netflix ships
+with credits and next episode enabled, but you can turn either one off in
+`Regras por app > Netflix`.
 
 ## Restricted Settings
 
@@ -195,8 +195,8 @@ Global actions are only the default behavior. AntSKIP can also configure every
 action separately for every streaming app.
 
 Use `Regras por app` in the app UI to decide which actions are allowed for each
-provider. This is the safest way to reduce false positives on providers other
-than Crunchyroll.
+provider. The screen shows a summary for each app, the current state of each
+rule, and provider-specific guidance for options that can advance playback.
 
 Crunchyroll intentionally ignores custom phrases in the matcher. It follows the
 per-app action rules and built-in strict labels for intros, recaps, credits, and
@@ -205,7 +205,8 @@ list.
 
 Examples:
 
-- Enable `Next episode` for Netflix only if you want automatic episode advance.
+- Keep `Next episode` enabled for Netflix if you want automatic episode advance.
+- Disable `Credits` for Netflix if you prefer to watch endings manually.
 - Keep `Next episode` disabled for Prime Video.
 - Enable only `Intros/openings` while testing a new provider.
 - Keep experimental providers disabled until you confirm their labels.
@@ -252,7 +253,8 @@ Settings > Accessibility > AntSKIP
 - Streaming apps can change labels, package names, or accessibility behavior at
   any time.
 - Next-episode prompts can behave differently for movies, specials, and final
-  episodes. Disable `Next episode` for that app if you prefer to manually watch endings.
+  episodes. Disable `Next episode` for that app if you prefer to manually
+  continue playback.
 - Very generic phrases such as `Next` or `Proximo` can be risky. Prefer per-app
   rules and blocklist phrases when testing.
 - Some providers have package aliases for mobile and TV builds, but forks or
@@ -289,7 +291,8 @@ app/src/main/kotlin/com/artur/antskip
 │   ├── SkipPhraseBank.kt
 │   └── TextNormalization.kt
 └── ui/
-    └── MainActivity.kt
+    ├── MainActivity.kt
+    └── ProviderRulesCopy.kt
 ```
 
 ## Safety Model

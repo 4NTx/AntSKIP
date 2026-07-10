@@ -20,7 +20,7 @@ enum class StreamingProvider(
         "Netflix",
         "com.netflix.mediaclient",
         true,
-        "Quando ligado, o AntSKIP observa o player da Netflix. Proximo episodio e creditos ficam mais restritos por seguranca.",
+        "Quando ligado, o AntSKIP observa o player da Netflix. Creditos e Proximo episodio ficam ativos por padrao.",
         setOf("com.netflix.ninja"),
     ),
     PRIME_VIDEO(
@@ -61,6 +61,8 @@ enum class StreamingProvider(
             NETFLIX -> action in setOf(
                 SkipAction.INTRO,
                 SkipAction.RECAP,
+                SkipAction.CREDITS,
+                SkipAction.NEXT_EPISODE,
             )
             PRIME_VIDEO -> action in setOf(
                 SkipAction.INTRO,
