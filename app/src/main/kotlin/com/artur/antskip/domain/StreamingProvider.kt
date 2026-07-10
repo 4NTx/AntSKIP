@@ -58,6 +58,10 @@ enum class StreamingProvider(
 
     fun isActionEnabledByDefault(action: SkipAction): Boolean =
         when (this) {
+            NETFLIX -> action in setOf(
+                SkipAction.INTRO,
+                SkipAction.RECAP,
+            )
             PRIME_VIDEO -> action in setOf(
                 SkipAction.INTRO,
                 SkipAction.RECAP,

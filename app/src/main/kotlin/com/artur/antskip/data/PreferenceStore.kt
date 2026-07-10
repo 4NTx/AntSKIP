@@ -155,15 +155,32 @@ class PreferenceStore(context: Context) {
         "block_credits_during_sleep_${provider.name.lowercase()}"
 
     private fun migrateCriticalDefaults() {
-        if (preferences.getInt(KEY_MIGRATION_VERSION, 0) >= CURRENT_MIGRATION_VERSION) return
+        val currentVersion = preferences.getInt(KEY_MIGRATION_VERSION, 0)
+        if (currentVersion >= CURRENT_MIGRATION_VERSION) return
 
-        preferences.edit()
-            .putBoolean(KEY_AUTOMATION_ENABLED, true)
-            .putBoolean(StreamingProvider.CRUNCHYROLL.preferenceKey, true)
-            .putBoolean(StreamingProvider.NETFLIX.preferenceKey, true)
-            .putBoolean(SkipAction.INTRO.preferenceKey, true)
-            .putBoolean(providerActionKey(StreamingProvider.CRUNCHYROLL, SkipAction.INTRO), true)
-            .putBoolean(providerActionKey(StreamingProvider.NETFLIX, SkipAction.INTRO), true)
+        val editor = preferences.edit()
+
+        if (currentVersion < 3) {
+            editor
+                .putBoolean(KEY_AUTOMATION_ENABLED, true)
+                .putBoolean(StreamingProvider.CRUNCHYROLL.preferenceKey, true)
+                .putBoolean(StreamingProvider.NETFLIX.preferenceKey, true)
+                .putBoolean(SkipAction.INTRO.preferenceKey, true)
+                .putBoolean(providerActionKey(StreamingProvider.CRUNCHYROLL, SkipAction.INTRO), true)
+                .putBoolean(providerActionKey(StreamingProvider.NETFLIX, SkipAction.INTRO), true)
+        }
+
+        val netflixNextEpisodeKey = providerActionKey(StreamingProvider.NETFLIX, SkipAction.NEXT_EPISODE)
+        if (currentVersion < 4 && !preferences.contains(netflixNextEpisodeKey)) {
+            editor.putBoolean(netflixNextEpisodeKey, false)
+        }
+
+        val netflixCreditsKey = providerActionKey(StreamingProvider.NETFLIX, SkipAction.CREDITS)
+        if (currentVersion < 5 && !preferences.contains(netflixCreditsKey)) {
+            editor.putBoolean(netflixCreditsKey, false)
+        }
+
+        editor
             .putInt(KEY_MIGRATION_VERSION, CURRENT_MIGRATION_VERSION)
             .apply()
     }
@@ -174,7 +191,7 @@ class PreferenceStore(context: Context) {
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
         const val KEY_DIAGNOSTIC_LOGS = "diagnostic_logs"
         const val KEY_MIGRATION_VERSION = "migration_version"
-        const val CURRENT_MIGRATION_VERSION = 3
+        const val CURRENT_MIGRATION_VERSION = 5
         const val MINUTES_PER_DAY = 24 * 60
         const val DEFAULT_SLEEP_START_MINUTES = 23 * 60
         const val DEFAULT_SLEEP_END_MINUTES = 7 * 60

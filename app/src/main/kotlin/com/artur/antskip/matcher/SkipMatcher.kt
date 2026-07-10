@@ -242,11 +242,6 @@ class SkipMatcher(
                 "pular",
                 "skip",
             ),
-            SkipAction.NEXT_EPISODE to setOf(
-                "proximo",
-                "proxima",
-                "next",
-            ),
         )
 
         val NETFLIX_PRIME_PHRASES = linkedMapOf(
@@ -289,15 +284,10 @@ class SkipMatcher(
             SkipAction.NEXT_EPISODE to setOf(
                 "proximo episodio",
                 "proximo episodio em",
-                "proxima parte",
-                "reproduzir proximo",
-                "assistir proximo",
                 "next episode",
                 "next episode in",
-                "play next",
                 "play next episode",
                 "watch next episode",
-                "next up",
             ),
         )
 

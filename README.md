@@ -22,8 +22,8 @@ click when a matching button appears.
   automatic tap.
 - Lets users enable or disable each streaming app independently.
 - Lets users enable or disable each skip action independently.
-- Supports per-app action rules. For example, `Next episode` can be enabled for
-  Netflix and disabled for Prime Video.
+- Supports per-app action rules. For example, `Next episode` can be enabled only
+  for the apps where you explicitly want automatic episode advance.
 - Supports a per-app bedtime window for `Next episode`, so automatic episode
   advance can stop during selected hours.
 - Supports one-time `Next episode` pauses per app, such as pausing for 1, 2, or
@@ -45,7 +45,7 @@ click when a matching button appears.
 | App | Android package | Default | Status |
 | --- | --- | --- | --- |
 | Crunchyroll | `com.crunchyroll.crunchyroid` | Enabled | Primary support |
-| Netflix | `com.netflix.mediaclient` | Enabled | Primary support |
+| Netflix | `com.netflix.mediaclient` | Enabled | Primary support; credits and next episode off by default |
 | Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Restricted support |
 | Disney+ | `com.disney.disneyplus` | Disabled | Experimental |
 | Max | `com.wbd.stream` | Disabled | Experimental |
@@ -59,9 +59,11 @@ explicit visible labels such as `PULAR INTRODUCAO`, `PULAR ABERTURA`,
 `Skip Intro`, `Skip Opening`, or `Next Episode`, and rejects large clickable
 containers so it does not tap anime list rows or full-screen player areas.
 
-Netflix uses the normal phrase bank plus Android accessibility click fallbacks,
-because Netflix can expose the button action on an ancestor node instead of the
-text node itself.
+Netflix uses provider-specific labels plus Android accessibility click
+fallbacks, because Netflix can expose the button action on an ancestor node
+instead of the text node itself. Automatic `Credits` and `Next episode` are
+disabled by default for Netflix to avoid unwanted episode advance, and Netflix
+next-episode matching ignores generic labels such as `Next` or `Proximo`.
 
 Prime Video uses a stricter provider-specific matcher instead of the generic
 phrase bank. It supports intro, recap, credits, and preview labels by default.
@@ -74,9 +76,9 @@ Prime Video because they are easier to confuse with credits or player controls.
 | --- | --- | --- |
 | Intros/openings | Enabled | `Pular abertura`, `Skip Intro`, `Skip Opening` |
 | Recaps/summaries | Enabled | `Pular resumo`, `Pular recapitulacao`, `Skip Recap` |
-| Credits/endings | Enabled | `Pular creditos`, `Skip Credits`, `Skip Ending` |
+| Credits/endings | Enabled globally; disabled by default for Netflix | `Pular creditos`, `Skip Credits`, `Skip Ending` |
 | Previews | Disabled | `Pular previa`, `Skip Preview`, `Skip Trailer` |
-| Next episode | Enabled | `Proximo`, `Proximo episodio`, `Next Episode`, `Play Next` |
+| Next episode | Enabled globally; disabled by default for Netflix and Prime Video | `Proximo episodio`, `Next Episode`, `Play Next Episode` |
 
 The built-in phrase bank includes common labels in Portuguese, English, Spanish,
 French, German, Italian, Dutch, Polish, Japanese, Korean, Chinese, and Turkish.
@@ -201,8 +203,8 @@ list.
 
 Examples:
 
-- Enable `Next episode` for Netflix.
-- Disable `Next episode` for Prime Video.
+- Enable `Next episode` for Netflix only if you want automatic episode advance.
+- Keep `Next episode` disabled for Prime Video.
 - Enable only `Intros/openings` while testing a new provider.
 - Keep experimental providers disabled until you confirm their labels.
 
