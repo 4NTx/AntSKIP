@@ -275,15 +275,15 @@ class MainActivity : Activity() {
     private fun showProviderPicker() {
         val list = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), dp(4), dp(4), dp(4))
+            setPadding(dp(2), dp(2), dp(2), dp(6))
         }
         StreamingProvider.entries.forEach { provider ->
-            list.addView(secondaryButton(provider.label) { showProviderRules(provider) }.withTopMargin(8))
+            list.addView(providerPickerRow(provider).withTopMargin(8))
         }
 
         AlertDialog.Builder(this)
             .setTitle("Regras por app")
-            .setMessage("Escolha exatamente o que cada app pode tocar. Essas regras vencem os padroes globais.")
+            .setMessage("Escolha um app e defina exatamente quais botoes o AntSKIP pode tocar nele.")
             .setView(ScrollView(this).apply { addView(list) })
             .setNegativeButton("Fechar", null)
             .show()
@@ -292,30 +292,195 @@ class MainActivity : Activity() {
     private fun showProviderRules(provider: StreamingProvider) {
         val list = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), 0, dp(4), 0)
+            setPadding(dp(2), 0, dp(2), dp(6))
         }
+        list.addView(providerRulesHeader(provider))
+        list.addView(sectionTitle("Cliques automaticos").withTopMargin(12))
         SkipAction.entries.forEachIndexed { index, action ->
             list.addView(
-                switchRow(
-                    action.label,
-                    providerActionDescription(provider, action),
-                    preferences.isActionEnabledForProvider(provider, action),
+                ruleSwitchRow(
+                    title = action.label,
+                    description = providerActionDescription(provider, action),
+                    checked = preferences.isActionEnabledForProvider(provider, action),
+                    recommendation = providerActionRecommendation(provider, action),
+                    warning = providerActionWarning(provider, action),
                 ) {
                     preferences.setActionEnabledForProvider(provider, action, it)
                 },
             )
             if (index != SkipAction.entries.lastIndex) list.addView(separator())
         }
-        list.addView(separator())
+        list.addView(sectionTitle("Protecao contra maratona acidental").withTopMargin(12))
         list.addView(nextEpisodeSchedulePanel(provider))
 
         AlertDialog.Builder(this)
-            .setTitle("Regras: ${provider.label}")
-            .setMessage("Ligado permite esse clique automatico em ${provider.label}. Desligado impede esse tipo de clique so neste app.")
+            .setTitle(provider.label)
             .setView(ScrollView(this).apply { addView(list) })
             .setPositiveButton("Fechar") { _, _ -> render() }
             .show()
     }
+
+    private fun providerPickerRow(provider: StreamingProvider): LinearLayout {
+        val enabled = preferences.isProviderEnabled(provider)
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = rounded(Color.WHITE, dp(8), STROKE)
+            isClickable = true
+            isFocusable = true
+            minimumHeight = dp(78)
+            setOnClickListener { showProviderRules(provider) }
+
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(
+                        text(provider.label, 17, bold = true, color = TEXT_DARK).apply {
+                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                        },
+                    )
+                    addView(
+                        statusBadge(
+                            if (enabled) "Monitorado" else "Desligado",
+                            if (enabled) SUCCESS_DARK else TEXT_MUTED,
+                            if (enabled) SUCCESS_SOFT else Color.WHITE,
+                        ),
+                    )
+                },
+            )
+            addView(text(providerRuleSummary(provider), 13, color = TEXT_MUTED).withPadding(top = 6))
+        }
+    }
+
+    private fun providerRulesHeader(provider: StreamingProvider): LinearLayout {
+        val enabled = preferences.isProviderEnabled(provider)
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = rounded(if (enabled) SUCCESS_SOFT else DANGER_SOFT, dp(8), if (enabled) SUCCESS_DARK else DANGER_DARK)
+            addView(
+                statusBadge(
+                    if (enabled) "App monitorado" else "App desligado",
+                    if (enabled) SUCCESS_DARK else DANGER_DARK,
+                    Color.WHITE,
+                ),
+            )
+            addView(text(providerRuleSummary(provider), 14, color = TEXT_DARK).withPadding(top = 8))
+            addView(text(providerGuidance(provider), 13, color = TEXT_MUTED).withPadding(top = 6))
+        }
+    }
+
+    private fun ruleSwitchRow(
+        title: String,
+        description: String,
+        checked: Boolean,
+        recommendation: String?,
+        warning: String?,
+        onChanged: (Boolean) -> Unit,
+    ): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(12), 0, dp(12))
+            var currentChecked = checked
+            lateinit var stateLabel: TextView
+
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    addView(
+                        LinearLayout(context).apply {
+                            orientation = LinearLayout.VERTICAL
+                            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                            addView(text(title, 16, bold = true, color = TEXT_DARK))
+                            recommendation?.let {
+                                addView(text(it, 12, bold = true, color = ACCENT_DARK).withPadding(top = 2))
+                            }
+                        },
+                    )
+                    addView(
+                        Switch(context).apply {
+                            minWidth = dp(56)
+                            isChecked = checked
+                            setOnCheckedChangeListener { _, value ->
+                                currentChecked = value
+                                onChanged(value)
+                                stateLabel.text = ruleStateText(value)
+                                stateLabel.setTextColor(if (value) SUCCESS_DARK else TEXT_MUTED)
+                            }
+                        },
+                    )
+                },
+            )
+            addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 6))
+            warning?.let { addView(warningText(it).withPadding(top = 8)) }
+            stateLabel = text(ruleStateText(currentChecked), 12, bold = true, color = if (checked) SUCCESS_DARK else TEXT_MUTED)
+                .withPadding(top = 6)
+            addView(stateLabel)
+        }
+
+    private fun providerRuleSummary(provider: StreamingProvider): String {
+        if (!preferences.isProviderEnabled(provider)) return "O AntSKIP ignora este app ate voce ligar em Apps monitorados."
+        val enabledActions = SkipAction.entries
+            .filter { preferences.isActionEnabledForProvider(provider, it) }
+            .map { it.shortLabel() }
+        if (enabledActions.isEmpty()) return "Monitorado, mas nenhum tipo de botao esta permitido."
+        return "Permitido: ${enabledActions.joinToString(", ")}."
+    }
+
+    private fun providerGuidance(provider: StreamingProvider): String =
+        when (provider) {
+            StreamingProvider.NETFLIX ->
+                "Para evitar pulo cedo, deixe Creditos desligado. Proximo episodio usa o botao final Proximo."
+            StreamingProvider.PRIME_VIDEO ->
+                "Suporte mais conservador. Mantenha Proximo episodio desligado se notar qualquer clique cedo."
+            StreamingProvider.CRUNCHYROLL ->
+                "Mais confiavel para intros e recaps. Proximo episodio deve ser ligado so se voce quer avancar sem confirmar."
+            else ->
+                "Experimental. Comece com Aberturas e intros, teste um episodio, depois ligue outras opcoes."
+        }
+
+    private fun providerActionRecommendation(provider: StreamingProvider, action: SkipAction): String? =
+        when {
+            provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS -> "Recomendado desligado"
+            provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE -> "Opcional para maratona"
+            provider == StreamingProvider.PRIME_VIDEO && action == SkipAction.NEXT_EPISODE -> "Recomendado desligado"
+            action == SkipAction.PREVIEW -> "Opcional"
+            action in setOf(SkipAction.INTRO, SkipAction.RECAP) -> "Recomendado ligado"
+            else -> null
+        }
+
+    private fun providerActionWarning(provider: StreamingProvider, action: SkipAction): String? =
+        when {
+            provider == StreamingProvider.NETFLIX && action == SkipAction.NEXT_EPISODE ->
+                "Na Netflix, esta opcao deve tocar no Proximo final. Se pular cedo, desligue e mande os logs."
+            provider == StreamingProvider.NETFLIX && action == SkipAction.CREDITS ->
+                "Pode esconder o fim do episodio. Mantenha desligado se voce quer assistir os creditos."
+            action == SkipAction.NEXT_EPISODE ->
+                "Esta opcao muda de episodio automaticamente."
+            else -> null
+        }
+
+    private fun ruleStateText(checked: Boolean): String =
+        if (checked) "Ligado neste app." else "Desligado neste app."
+
+    private fun globalStateText(checked: Boolean): String =
+        if (checked) "Estado atual: ativo." else "Estado atual: desligado."
+
+    private fun SkipAction.shortLabel(): String =
+        when (this) {
+            SkipAction.INTRO -> "intro"
+            SkipAction.RECAP -> "recap"
+            SkipAction.CREDITS -> "creditos"
+            SkipAction.PREVIEW -> "preview"
+            SkipAction.NEXT_EPISODE -> "proximo"
+        }
+
+    private fun sectionTitle(value: String): TextView =
+        text(value, 14, bold = true, color = TEXT_MUTED).apply {
+            setPadding(0, dp(2), 0, dp(6))
+        }
 
     private fun nextEpisodeSchedulePanel(provider: StreamingProvider): LinearLayout =
         LinearLayout(this).apply {
@@ -555,6 +720,8 @@ class MainActivity : Activity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(10), 0, dp(10))
+            var currentChecked = checked
+            lateinit var stateLabel: TextView
 
             addView(
                 LinearLayout(context).apply {
@@ -569,20 +736,24 @@ class MainActivity : Activity() {
                         Switch(context).apply {
                             minWidth = dp(56)
                             isChecked = checked
-                            setOnCheckedChangeListener { _, value -> onChanged(value) }
+                            setOnCheckedChangeListener { _, value ->
+                                currentChecked = value
+                                onChanged(value)
+                                stateLabel.text = globalStateText(value)
+                                stateLabel.setTextColor(if (value) SUCCESS_DARK else TEXT_MUTED)
+                            }
                         },
                     )
                 },
             )
             addView(text(description, 13, color = TEXT_MUTED).withPadding(top = 4))
-            addView(
-                text(
-                    if (checked) "Estado atual: ligado." else "Estado atual: desligado.",
-                    12,
-                    bold = true,
-                    color = if (checked) SUCCESS_DARK else TEXT_MUTED,
-                ).withPadding(top = 4),
-            )
+            stateLabel = text(
+                globalStateText(currentChecked),
+                12,
+                bold = true,
+                color = if (checked) SUCCESS_DARK else TEXT_MUTED,
+            ).withPadding(top = 4)
+            addView(stateLabel)
         }
 
     private fun providerActionDescription(provider: StreamingProvider, action: SkipAction): String =
@@ -807,7 +978,7 @@ class MainActivity : Activity() {
         setPadding(paddingLeft, dp(top), paddingRight, dp(bottom))
     }
 
-    private fun <T : TextView> T.withTopMargin(value: Int): T = apply {
+    private fun <T : View> T.withTopMargin(value: Int): T = apply {
         layoutParams = (layoutParams as? LinearLayout.LayoutParams ?: LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
