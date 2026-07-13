@@ -39,16 +39,8 @@ class SkipMatcher(
             } else {
                 NodeText.from(node)
             }
-            var matchedText = nodeText
+            val matchedText = nodeText
             val action = matchAction(nodeText, provider, rootContextText)
-                ?: if (provider == StreamingProvider.CRUNCHYROLL) {
-                    val fullNodeText = NodeText.from(node)
-                    matchCrunchyrollNextEpisodeAction(fullNodeText)?.also {
-                        matchedText = fullNodeText
-                    }
-                } else {
-                    null
-                }
             if (action != null && isActionAllowed(action, provider)) {
                 val targets = node.clickCandidates(provider, rootBounds)
                 val gestureBounds = Rect().also(node::getBoundsInScreen)
@@ -102,11 +94,6 @@ class SkipMatcher(
             }?.key
         }
 
-    private fun matchCrunchyrollNextEpisodeAction(text: String): SkipAction? =
-        CRUNCHYROLL_NEXT_EPISODE_PHRASES
-            .takeIf { phrases -> phrases.any { phrase -> text == phrase || text.contains(phrase) } }
-            ?.let { SkipAction.NEXT_EPISODE }
-
     private fun matchNetflixOrPrimeAction(text: String): SkipAction? =
         NETFLIX_PRIME_EXACT_PHRASES.entries.firstOrNull { (_, phrases) ->
             text in phrases
@@ -115,7 +102,9 @@ class SkipMatcher(
         }?.key
 
     private fun matchNetflixAction(text: String, rootContextText: String): SkipAction? {
-        if (text == NETFLIX_FINAL_NEXT_BUTTON_PHRASE_PT_BR) return SkipAction.NEXT_EPISODE
+        if (text == NETFLIX_FINAL_NEXT_BUTTON_PHRASE_PT_BR) {
+            return SkipAction.NEXT_EPISODE.takeIf { hasNetflixEndPromptContext(rootContextText) }
+        }
         val action = matchNetflixOrPrimeAction(text) ?: return null
         if (action != SkipAction.NEXT_EPISODE) return action
         if (!hasNetflixEndPromptContext(rootContextText)) return null
