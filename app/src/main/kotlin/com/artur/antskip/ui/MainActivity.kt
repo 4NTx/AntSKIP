@@ -9,6 +9,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.TypedValue
+import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -37,6 +40,7 @@ class MainActivity : Activity() {
     private var updateState: UpdateState = UpdateState.NotChecked
 
     private lateinit var heroCard: HeroStatusCard
+    private lateinit var headerStatusBadge: TextView
     private var isViewBuilt = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,7 +54,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (isViewBuilt) {
-            updateHeroStatus()
+            updateStatus()
         } else {
             render()
         }
@@ -67,7 +71,7 @@ class MainActivity : Activity() {
     private fun createContent(): ScrollView {
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(this@MainActivity, 16), 0, AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 24))
+            setPadding(AntTheme.dp(this@MainActivity, 16), 0, AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 32))
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -79,18 +83,54 @@ class MainActivity : Activity() {
         val activeProviders = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
         val totalProviders = StreamingProvider.entries.size
 
-        // 1. Hero Status Card
+        // 1. Top Header Bar (Title, version, subtle status pill)
+        val headerBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val hParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            hParams.topMargin = AntTheme.dp(this@MainActivity, 8)
+            hParams.bottomMargin = AntTheme.dp(this@MainActivity, 14)
+            layoutParams = hParams
+
+            val titleColumn = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+
+                val appTitle = TextView(this@MainActivity).apply {
+                    text = "AntSKIP"
+                    setTextColor(AntTheme.TEXT_PRIMARY)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+
+                val versionText = TextView(this@MainActivity).apply {
+                    text = "v${updater.installedVersionName()}"
+                    setTextColor(AntTheme.TEXT_MUTED)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                }
+
+                addView(appTitle)
+                addView(versionText)
+            }
+
+            headerStatusBadge = TextView(this@MainActivity).apply {
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setPadding(AntTheme.dp(this@MainActivity, 10), AntTheme.dp(this@MainActivity, 4), AntTheme.dp(this@MainActivity, 10), AntTheme.dp(this@MainActivity, 4))
+            }
+
+            addView(titleColumn)
+            addView(headerStatusBadge)
+        }
+        rootLayout.addView(headerBar)
+
+        // 2. Accessibility Banner (ONLY visible when accessibility is disabled!)
         heroCard = HeroStatusCard(
             context = this,
             version = updater.installedVersionName(),
-            onPrimaryAction = {
-                if (!isAccessibilityServiceEnabled()) openAccessibilitySettings()
-                else SimulatorDialog(this, preferences).show()
-            },
-            onSecondaryAction = {
-                if (!isAccessibilityServiceEnabled()) openAppInfo()
-                else openAccessibilitySettings()
-            },
+            onPrimaryAction = { openAccessibilitySettings() },
+            onSecondaryAction = { openAppInfo() },
         )
         val heroView = heroCard.createView(
             isServiceEnabled = isServiceEnabled,
@@ -100,50 +140,86 @@ class MainActivity : Activity() {
         )
         rootLayout.addView(heroView)
 
-        // 2. Sleep Timer Card (Universal media pause & screen lock, alarms 100% protected)
+        // 3. Sleep Timer Card
         val sleepTimerCard = SleepTimerCard(
             context = this,
             preferences = preferences,
-            onStateChanged = { updateHeroStatus() },
+            onStateChanged = { updateStatus() },
         )
         rootLayout.addView(sleepTimerCard.createView())
 
-        // 3. Quick Tools Section (Test button, Logs, Updates)
+        // 4. Section: Aplicativos (Grouped Card)
+        rootLayout.addView(createSectionTitle("APLICATIVOS"))
+        val providersGroup = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, this@MainActivity)
+            val pParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            pParams.bottomMargin = AntTheme.dp(this@MainActivity, 14)
+            layoutParams = pParams
+
+            val providersList = StreamingProvider.entries
+            providersList.forEachIndexed { index, provider ->
+                val card = ProviderCard(
+                    context = this@MainActivity,
+                    provider = provider,
+                    preferences = preferences,
+                    isInstalled = isAppInstalled(provider),
+                    onToggleChanged = { updateStatus() },
+                )
+                addView(card.createRowView())
+                if (index < providersList.size - 1) {
+                    addView(AntTheme.divider(this@MainActivity))
+                }
+            }
+        }
+        rootLayout.addView(providersGroup)
+
+        // 5. Section: Ações Automáticas (Grouped Card)
+        rootLayout.addView(createSectionTitle("AÇÕES AUTOMÁTICAS"))
+        val actionsGroup = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, this@MainActivity)
+            val aParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            aParams.bottomMargin = AntTheme.dp(this@MainActivity, 14)
+            layoutParams = aParams
+
+            val actionsList = SkipAction.entries
+            actionsList.forEachIndexed { index, action ->
+                val actionCard = ActionToggleCard(
+                    context = this@MainActivity,
+                    action = action,
+                    preferences = preferences,
+                    onToggleChanged = { updateStatus() },
+                )
+                addView(actionCard.createRowView())
+                if (index < actionsList.size - 1) {
+                    addView(AntTheme.divider(this@MainActivity))
+                }
+            }
+        }
+        rootLayout.addView(actionsGroup)
+
+        // 6. Section: Ferramentas (Grouped Card)
+        rootLayout.addView(createSectionTitle("FERRAMENTAS"))
         val tools = QuickToolsSection(
             context = this,
             onOpenSimulator = { SimulatorDialog(this, preferences).show() },
-            onOpenDiagnostics = { DiagnosticsDialog(this, preferences).show { updateHeroStatus() } },
+            onOpenDiagnostics = { DiagnosticsDialog(this, preferences).show { updateStatus() } },
             onCheckUpdates = { showUpdateDialog() },
         ).createView()
         rootLayout.addView(tools)
 
-        // 4. Section: Streaming Apps (The Big 3)
-        rootLayout.addView(createSectionHeader("Streamings Suportados", "Ative os aplicativos que você utiliza para pular botões automaticamente."))
-        StreamingProvider.entries.forEach { provider ->
-            val card = ProviderCard(
-                context = this,
-                provider = provider,
-                preferences = preferences,
-                isInstalled = isAppInstalled(provider),
-                onToggleChanged = { updateHeroStatus() },
-            )
-            rootLayout.addView(card.createView())
+        // 7. Minimalist Footer
+        val footer = TextView(this).apply {
+            text = "AntSKIP • 100% offline e privativo"
+            setTextColor(AntTheme.TEXT_MUTED)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            gravity = Gravity.CENTER
+            setPadding(0, AntTheme.dp(this@MainActivity, 12), 0, 0)
         }
+        rootLayout.addView(footer)
 
-        // 5. Section: Global Actions
-        rootLayout.addView(createSectionHeader("Ações de Pulo", "Escolha quais tipos de botões devem ser pulados automaticamente."))
-        SkipAction.entries.forEach { action ->
-            val actionCard = ActionToggleCard(
-                context = this,
-                action = action,
-                preferences = preferences,
-                onToggleChanged = { updateHeroStatus() },
-            ).createView()
-            rootLayout.addView(actionCard)
-        }
-
-        // 6. Section: Privacy & Security footer
-        rootLayout.addView(createPrivacyFooter())
+        updateStatus()
 
         return ScrollView(this).apply {
             setBackgroundColor(AntTheme.BG_CANVAS)
@@ -153,67 +229,37 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun updateHeroStatus() {
+    private fun createSectionTitle(title: String): TextView =
+        TextView(this).apply {
+            text = title
+            setTextColor(AntTheme.TEXT_MUTED)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            setPadding(AntTheme.dp(this@MainActivity, 4), AntTheme.dp(this@MainActivity, 8), 0, AntTheme.dp(this@MainActivity, 6))
+        }
+
+    private fun updateStatus() {
         if (!isViewBuilt) return
         try {
             val isServiceEnabled = isAccessibilityServiceEnabled()
             val isAutomationEnabled = preferences.isAutomationEnabled
             val activeProviders = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
             val totalProviders = StreamingProvider.entries.size
+
             heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
+
+            if (isServiceEnabled) {
+                headerStatusBadge.text = "Ativo"
+                headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.SUCCESS_BG, 6f, AntTheme.SUCCESS_BORDER, 1, this)
+            } else {
+                headerStatusBadge.text = "Desativado"
+                headerStatusBadge.setTextColor(AntTheme.DANGER_TEXT)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.DANGER_BG, 6f, AntTheme.DANGER_BORDER, 1, this)
+            }
         } catch (_: Exception) {
         }
     }
-
-    private fun createSectionHeader(title: String, subtitle: String): LinearLayout =
-        LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.topMargin = AntTheme.dp(this@MainActivity, 14)
-            params.bottomMargin = AntTheme.dp(this@MainActivity, 10)
-            layoutParams = params
-
-            val titleView = TextView(this@MainActivity).apply {
-                text = title
-                setTextColor(AntTheme.TEXT_PRIMARY)
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 17f)
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-            }
-            val subtitleView = TextView(this@MainActivity).apply {
-                text = subtitle
-                setTextColor(AntTheme.TEXT_SECONDARY)
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12.5f)
-                setPadding(0, AntTheme.dp(this@MainActivity, 3), 0, 0)
-            }
-            addView(titleView)
-            addView(subtitleView)
-        }
-
-    private fun createPrivacyFooter(): LinearLayout =
-        LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.topMargin = AntTheme.dp(this@MainActivity, 18)
-            params.bottomMargin = AntTheme.dp(this@MainActivity, 20)
-            layoutParams = params
-            setPadding(AntTheme.dp(this@MainActivity, 14), AntTheme.dp(this@MainActivity, 12), AntTheme.dp(this@MainActivity, 14), AntTheme.dp(this@MainActivity, 12))
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, this@MainActivity)
-
-            val pTitle = TextView(this@MainActivity).apply {
-                text = "🛡️ Privacidade & Proteção Total de Alarmes"
-                setTextColor(AntTheme.TEXT_PRIMARY)
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-            }
-            val pDesc = TextView(this@MainActivity).apply {
-                text = "O AntSKIP funciona 100% offline, não grava tela e não acessa dados privados. O temporizador de sono nunca silencia o canal de alarmes (STREAM_ALARM)."
-                setTextColor(AntTheme.TEXT_MUTED)
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11.5f)
-                setPadding(0, AntTheme.dp(this@MainActivity, 4), 0, 0)
-            }
-            addView(pTitle)
-            addView(pDesc)
-        }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
         return try {
@@ -240,8 +286,8 @@ class MainActivity : Activity() {
     private fun openAccessibilitySettings() {
         try {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-        } catch (e: Exception) {
-            Toast.makeText(this, "Abra as Configurações > Acessibilidade do Android", Toast.LENGTH_LONG).show()
+        } catch (_: Exception) {
+            Toast.makeText(this, "Abra Configurações > Acessibilidade no seu aparelho", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -303,7 +349,7 @@ class MainActivity : Activity() {
                 }
                 view.setPadding(
                     leftInset,
-                    topInset + AntTheme.dp(this@MainActivity, 12),
+                    topInset + AntTheme.dp(this@MainActivity, 8),
                     rightInset,
                     bottomInset + AntTheme.dp(this@MainActivity, 16),
                 )
@@ -333,19 +379,19 @@ class MainActivity : Activity() {
                 when (state) {
                     is UpdateState.UpdateAvailable -> {
                         AlertDialog.Builder(this)
-                            .setTitle("Nova Versão Disponível: v${state.latestVersion}")
-                            .setMessage("Uma nova atualização do AntSKIP foi encontrada no GitHub.")
+                            .setTitle("Atualização disponível: v${state.latestVersion}")
+                            .setMessage("Uma versão mais recente está disponível no GitHub.")
                             .setPositiveButton("Baixar") { _, _ ->
                                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.releaseUrl)))
                             }
-                            .setNegativeButton("Mais tarde", null)
+                            .setNegativeButton("Fechar", null)
                             .show()
                     }
                     is UpdateState.UpToDate -> {
-                        Toast.makeText(this, "AntSKIP está atualizado (v${state.latestVersion})!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "O AntSKIP já está na versão mais recente (v${state.latestVersion})", Toast.LENGTH_SHORT).show()
                     }
                     is UpdateState.CheckFailed -> {
-                        Toast.makeText(this, "Não foi possível verificar atualizações: ${state.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Não foi possível verificar atualizações no momento", Toast.LENGTH_SHORT).show()
                     }
                     else -> Unit
                 }

@@ -18,47 +18,42 @@ class ActionToggleCard(
     private val preferences: PreferenceStore,
     private val onToggleChanged: (Boolean) -> Unit,
 ) {
-    fun createView(): LinearLayout =
+    fun createRowView(): LinearLayout =
         LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(AntTheme.dp(context, 16), AntTheme.dp(context, 12), AntTheme.dp(context, 16), AntTheme.dp(context, 12))
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, context)
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.bottomMargin = AntTheme.dp(context, 8)
-            layoutParams = params
 
-            val topRow = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
+            val textColumn = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
 
                 val title = TextView(context).apply {
                     text = action.label
                     setTextColor(AntTheme.TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
                     typeface = Typeface.DEFAULT_BOLD
-                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                 }
 
-                val sw = Switch(context).apply {
-                    isChecked = preferences.isActionEnabled(action)
-                    setOnCheckedChangeListener { _, isChecked ->
-                        preferences.setActionEnabled(action, isChecked)
-                        onToggleChanged(isChecked)
-                    }
+                val desc = TextView(context).apply {
+                    text = action.description
+                    setTextColor(AntTheme.TEXT_MUTED)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 }
 
                 addView(title)
-                addView(sw)
+                addView(desc)
             }
 
-            val desc = TextView(context).apply {
-                text = action.description
-                setTextColor(AntTheme.TEXT_SECONDARY)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-                setPadding(0, AntTheme.dp(context, 4), 0, 0)
+            val sw = Switch(context).apply {
+                isChecked = preferences.isActionEnabled(action)
+                setOnCheckedChangeListener { _, isChecked ->
+                    preferences.setActionEnabled(action, isChecked)
+                    onToggleChanged(isChecked)
+                }
             }
 
-            addView(topRow)
-            addView(desc)
+            addView(textColumn)
+            addView(sw)
         }
 }

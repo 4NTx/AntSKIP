@@ -2,7 +2,6 @@ package com.artur.antskip.ui.components
 
 import android.content.Context
 import android.graphics.Typeface
-import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.ViewGroup
@@ -20,78 +19,43 @@ class ProviderCard(
     private val isInstalled: Boolean,
     private val onToggleChanged: (Boolean) -> Unit,
 ) {
-    fun createView(): LinearLayout =
+    fun createRowView(): LinearLayout =
         LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 16), AntTheme.dp(context, 14), AntTheme.dp(context, 16), AntTheme.dp(context, 14))
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 14f, AntTheme.CARD_BORDER, 1, context)
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.bottomMargin = AntTheme.dp(context, 10)
-            layoutParams = params
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(AntTheme.dp(context, 16), AntTheme.dp(context, 12), AntTheme.dp(context, 16), AntTheme.dp(context, 12))
 
-            val topRow = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-
-                val brandPill = TextView(context).apply {
-                    background = AntTheme.rounded(provider.brandColor, 4f, null, 0, context)
-                    val pParams = LinearLayout.LayoutParams(AntTheme.dp(context, 4), AntTheme.dp(context, 20))
-                    pParams.marginEnd = AntTheme.dp(context, 10)
-                    layoutParams = pParams
-                }
+            val textColumn = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
 
                 val title = TextView(context).apply {
                     text = provider.label
                     setTextColor(AntTheme.TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
                     typeface = Typeface.DEFAULT_BOLD
-                    maxLines = 1
-                    ellipsize = TextUtils.TruncateAt.END
                 }
-
-                val installedBadge = AntTheme.badge(
-                    context,
-                    if (isInstalled) "Instalado" else "Não instalado",
-                    if (isInstalled) AntTheme.SUCCESS_TEXT else AntTheme.TEXT_MUTED,
-                    if (isInstalled) AntTheme.SUCCESS_BG else AntTheme.BG_CANVAS,
-                    if (isInstalled) AntTheme.SUCCESS_BORDER else AntTheme.CARD_BORDER,
-                ).apply {
-                    val bParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                    bParams.marginStart = AntTheme.dp(context, 8)
-                    layoutParams = bParams
-                }
-
-                val spacer = LinearLayout(context).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
-                }
-
-                val sw = Switch(context).apply {
-                    isChecked = preferences.isProviderEnabled(provider)
-                    setOnCheckedChangeListener { _, isChecked ->
-                        preferences.setProviderEnabled(provider, isChecked)
-                        onToggleChanged(isChecked)
-                    }
-                }
-
-                addView(brandPill)
                 addView(title)
-                addView(installedBadge)
-                addView(spacer)
-                addView(sw)
-            }
 
-            val desc = TextView(context).apply {
-                text = when (provider) {
-                    StreamingProvider.NETFLIX -> "Pula aberturas, resumos, créditos e botão final Próximo."
-                    StreamingProvider.CRUNCHYROLL -> "Pula aberturas, recaps e avança episódios automaticamente."
-                    StreamingProvider.PRIME_VIDEO -> "Pula intro e créditos protegendo contra menus do X-Ray."
+                if (!isInstalled) {
+                    val sub = TextView(context).apply {
+                        text = "Não instalado neste aparelho"
+                        setTextColor(AntTheme.TEXT_MUTED)
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    }
+                    addView(sub)
                 }
-                setTextColor(AntTheme.TEXT_SECONDARY)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-                setPadding(0, AntTheme.dp(context, 6), 0, 0)
             }
 
-            addView(topRow)
-            addView(desc)
+            val sw = Switch(context).apply {
+                isChecked = preferences.isProviderEnabled(provider)
+                setOnCheckedChangeListener { _, isChecked ->
+                    preferences.setProviderEnabled(provider, isChecked)
+                    onToggleChanged(isChecked)
+                }
+            }
+
+            addView(textColumn)
+            addView(sw)
         }
 }

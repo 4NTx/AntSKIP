@@ -6,46 +6,43 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
-import android.graphics.drawable.StateListDrawable
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 
 object AntTheme {
-    // Premium Dark OLED Palette
-    const val BG_CANVAS = 0xFF0B0E14.toInt()
-    const val CARD_SURFACE = 0xFF141923.toInt()
-    const val CARD_SURFACE_HOVER = 0xFF1A212E.toInt()
-    const val CARD_BORDER = 0xFF232B3A.toInt()
-    const val HERO_BG = 0xFF161E2D.toInt()
-    const val HERO_BORDER = 0xFF2B3A54.toInt()
+    // Clean Modern Dark Palette (GitHub/Pixel Dark style)
+    const val BG_CANVAS = 0xFF0E1117.toInt()
+    const val CARD_SURFACE = 0xFF161B22.toInt()
+    const val CARD_SURFACE_HOVER = 0xFF21262D.toInt()
+    const val CARD_BORDER = 0xFF2B313A.toInt()
+    const val DIVIDER = 0xFF242930.toInt()
 
-    // Accents
-    const val ACCENT_PRIMARY = 0xFFFF7A00.toInt()
-    const val ACCENT_HOVER = 0xFFE56900.toInt()
-    const val ACCENT_SOFT = 0x26FF7A00.toInt()
+    // Accent
+    const val ACCENT_PRIMARY = 0xFFF97316.toInt()
+    const val ACCENT_HOVER = 0xFFEA580C.toInt()
+    const val ACCENT_SOFT = 0x22F97316.toInt()
 
     // Status Colors
-    const val SUCCESS_TEXT = 0xFF34D399.toInt()
-    const val SUCCESS_BG = 0x2210B981.toInt()
-    const val SUCCESS_BORDER = 0x4410B981.toInt()
+    const val SUCCESS_TEXT = 0xFF3FB950.toInt()
+    const val SUCCESS_BG = 0x1A3FB950.toInt()
+    const val SUCCESS_BORDER = 0x333FB950.toInt()
 
-    const val WARNING_TEXT = 0xFFFBBF24.toInt()
-    const val WARNING_BG = 0x22F59E0B.toInt()
-    const val WARNING_BORDER = 0x44F59E0B.toInt()
+    const val WARNING_TEXT = 0xFFD29922.toInt()
+    const val WARNING_BG = 0x1AD29922.toInt()
+    const val WARNING_BORDER = 0x33D29922.toInt()
 
-    const val DANGER_TEXT = 0xFFF87171.toInt()
-    const val DANGER_BG = 0x22EF4444.toInt()
-    const val DANGER_BORDER = 0x44EF4444.toInt()
+    const val DANGER_TEXT = 0xFFF85149.toInt()
+    const val DANGER_BG = 0x1AF85149.toInt()
+    const val DANGER_BORDER = 0x33F85149.toInt()
 
     // Typography Colors
-    const val TEXT_PRIMARY = 0xFFF1F5F9.toInt()
-    const val TEXT_SECONDARY = 0xFF94A3B8.toInt()
-    const val TEXT_MUTED = 0xFF64748B.toInt()
-    const val TEXT_INVERSE = 0xFF0B0E14.toInt()
+    const val TEXT_PRIMARY = 0xFFF0F6FC.toInt()
+    const val TEXT_SECONDARY = 0xFF8B949E.toInt()
+    const val TEXT_MUTED = 0xFF6E7681.toInt()
+    const val TEXT_INVERSE = 0xFF0E1117.toInt()
 
     fun dp(context: Context, value: Int): Int =
         (value * context.resources.displayMetrics.density + 0.5f).toInt()
@@ -66,22 +63,10 @@ object AntTheme {
             }
         }
 
-    fun gradient(
-        startColor: Int,
-        endColor: Int,
-        radiusDp: Float,
-        context: Context,
-        orientation: GradientDrawable.Orientation = GradientDrawable.Orientation.TL_BR,
-    ): GradientDrawable =
-        GradientDrawable(orientation, intArrayOf(startColor, endColor)).apply {
-            val density = context.resources.displayMetrics.density
-            cornerRadius = radiusDp * density
-        }
-
     fun rippleButton(
         normalColor: Int,
         rippleColor: Int = Color.WHITE,
-        radiusDp: Float = 12f,
+        radiusDp: Float = 10f,
         context: Context,
     ): RippleDrawable {
         val normal = rounded(normalColor, radiusDp, null, 0, context)
@@ -93,20 +78,13 @@ object AntTheme {
         )
     }
 
-    fun badge(
-        context: Context,
-        text: String,
-        textColor: Int,
-        bgColor: Int,
-        borderColor: Int? = null,
-    ): TextView =
-        TextView(context).apply {
-            this.text = text
-            setTextColor(textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setPadding(dp(context, 10), dp(context, 4), dp(context, 10), dp(context, 4))
-            background = rounded(bgColor, 8f, borderColor, 1, context)
+    fun divider(context: Context): View =
+        View(context).apply {
+            setBackgroundColor(DIVIDER)
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(context, 1),
+            )
+            layoutParams = params
         }
 }

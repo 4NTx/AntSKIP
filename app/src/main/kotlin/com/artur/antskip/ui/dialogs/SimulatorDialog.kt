@@ -13,7 +13,6 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import com.artur.antskip.data.PreferenceStore
-import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
 import com.artur.antskip.matcher.SkipMatcher
 import com.artur.antskip.matcher.SkipPhraseBank
@@ -28,27 +27,25 @@ class SimulatorDialog(
         val matcher = SkipMatcher(preferences)
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 20), AntTheme.dp(context, 16), AntTheme.dp(context, 20), AntTheme.dp(context, 20))
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 16f, AntTheme.CARD_BORDER, 1, context)
+            setPadding(AntTheme.dp(context, 18), AntTheme.dp(context, 16), AntTheme.dp(context, 18), AntTheme.dp(context, 16))
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, context)
         }
 
         val title = TextView(context).apply {
-            text = "Testar Reconhecimento de Botão"
+            text = "Testar reconhecimento"
             setTextColor(AntTheme.TEXT_PRIMARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, AntTheme.dp(context, 4))
         }
         val subtitle = TextView(context).apply {
-            text = "Digite o texto de um botão de streaming para testar se o AntSKIP o reconhece."
+            text = "Verifique se o AntSKIP identifica a frase de um botão de streaming."
             setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, 0, 0, AntTheme.dp(context, 14))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setPadding(0, AntTheme.dp(context, 4), 0, AntTheme.dp(context, 12))
         }
 
-        // Provider dropdown
         val providerLabel = TextView(context).apply {
-            text = "Streaming:"
+            text = "Aplicativo:"
             setTextColor(AntTheme.TEXT_SECONDARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, 0, 0, AntTheme.dp(context, 4))
@@ -56,59 +53,49 @@ class SimulatorDialog(
         val providerSpinner = Spinner(context).apply {
             val providerNames = StreamingProvider.entries.map { it.label }
             adapter = ArrayAdapter(context, android.R.layout.simple_spinner_dropdown_item, providerNames)
-            background = AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
-            setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 10), AntTheme.dp(context, 12), AntTheme.dp(context, 10))
+            background = AntTheme.rounded(AntTheme.BG_CANVAS, 6f, AntTheme.CARD_BORDER, 1, context)
+            setPadding(AntTheme.dp(context, 10), AntTheme.dp(context, 8), AntTheme.dp(context, 10), AntTheme.dp(context, 8))
         }
 
-        // Text input
         val inputLabel = TextView(context).apply {
-            text = "Texto do Botão (Ex: Pular abertura, Skip Intro):"
+            text = "Texto do botão:"
             setTextColor(AntTheme.TEXT_SECONDARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0, AntTheme.dp(context, 12), 0, AntTheme.dp(context, 4))
+            setPadding(0, AntTheme.dp(context, 10), 0, AntTheme.dp(context, 4))
         }
         val input = EditText(context).apply {
             hint = "Ex: Pular abertura"
             setHintTextColor(AntTheme.TEXT_MUTED)
             setTextColor(AntTheme.TEXT_PRIMARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            background = AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
-            setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 12), AntTheme.dp(context, 12), AntTheme.dp(context, 12))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            background = AntTheme.rounded(AntTheme.BG_CANVAS, 6f, AntTheme.CARD_BORDER, 1, context)
+            setPadding(AntTheme.dp(context, 10), AntTheme.dp(context, 10), AntTheme.dp(context, 10), AntTheme.dp(context, 10))
         }
 
-        // Results card
         val resultCard = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 14), AntTheme.dp(context, 12), AntTheme.dp(context, 14), AntTheme.dp(context, 12))
-            background = AntTheme.rounded(AntTheme.BG_CANVAS, 10f, AntTheme.CARD_BORDER, 1, context)
+            setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 10), AntTheme.dp(context, 12), AntTheme.dp(context, 10))
+            background = AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
             val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.topMargin = AntTheme.dp(context, 14)
+            params.topMargin = AntTheme.dp(context, 12)
             layoutParams = params
         }
 
-        val resultHeader = TextView(context).apply {
-            text = "Resultado:"
-            setTextColor(AntTheme.TEXT_MUTED)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            typeface = Typeface.DEFAULT_BOLD
-        }
         val resultText = TextView(context).apply {
-            text = "Aguardando teste..."
-            setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            setPadding(0, AntTheme.dp(context, 4), 0, 0)
+            text = "Digite uma frase e toque em Verificar."
+            setTextColor(AntTheme.TEXT_MUTED)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
         }
-        resultCard.addView(resultHeader)
         resultCard.addView(resultText)
 
         val testButton = Button(context).apply {
-            text = "Verificar Botão"
+            text = "Verificar"
             setTextColor(AntTheme.TEXT_INVERSE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             typeface = Typeface.DEFAULT_BOLD
-            background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 10f, context = context)
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 44))
-            params.topMargin = AntTheme.dp(context, 14)
+            background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 8f, context = context)
+            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 40))
+            params.topMargin = AntTheme.dp(context, 12)
             layoutParams = params
 
             setOnClickListener {
@@ -122,28 +109,20 @@ class SimulatorDialog(
                 val normalized = entered.normalizeForMatch()
 
                 if (matcher.isBlocked(normalized)) {
-                    resultText.text = "BLOQUEADO: Esta frase é ignorada intencionalmente."
-                    resultText.setTextColor(AntTheme.DANGER_TEXT)
+                    resultText.text = "Bloqueado: Esta frase é de controle do player e é ignorada intencionalmente."
+                    resultText.setTextColor(AntTheme.WARNING_TEXT)
                     return@setOnClickListener
                 }
 
                 val matchedAction = SkipPhraseBank.match(normalized)
-
                 if (matchedAction == null) {
-                    resultText.text = "NÃO RECONHECIDO\nNenhuma regra conhecida bateu com '$entered'."
+                    resultText.text = "Não reconhecido: Nenhuma regra encontrada para '$entered'."
                     resultText.setTextColor(AntTheme.DANGER_TEXT)
                 } else {
                     val appEnabled = preferences.isProviderEnabled(provider)
                     val actionEnabled = preferences.isActionEnabled(matchedAction)
-
-                    val statusMsg = buildString {
-                        append("✅ RECONHECIDO COM SUCESSO!\n")
-                        append("• Ação: ${matchedAction.label}\n")
-                        append("• Streaming: ${provider.label}\n")
-                        append("• Status do Streaming: ${if (appEnabled) "Ativo" else "Desativado nas opções"}\n")
-                        append("• Status da Ação: ${if (actionEnabled) "Ativo" else "Desativado nas opções"}")
-                    }
-                    resultText.text = statusMsg
+                    val statusDesc = if (appEnabled && actionEnabled) "habilitado" else "desabilitado nas opções"
+                    resultText.text = "Reconhecido como: ${matchedAction.label} ($statusDesc no ${provider.label})"
                     resultText.setTextColor(if (appEnabled && actionEnabled) AntTheme.SUCCESS_TEXT else AntTheme.WARNING_TEXT)
                 }
             }

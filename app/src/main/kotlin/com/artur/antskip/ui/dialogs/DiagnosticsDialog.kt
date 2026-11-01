@@ -23,37 +23,36 @@ class DiagnosticsDialog(
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(AntTheme.dp(context, 18), AntTheme.dp(context, 16), AntTheme.dp(context, 18), AntTheme.dp(context, 16))
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 16f, AntTheme.CARD_BORDER, 1, context)
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, context)
         }
 
         val title = TextView(context).apply {
-            text = "Logs de Diagnóstico"
+            text = "Logs de eventos"
             setTextColor(AntTheme.TEXT_PRIMARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, AntTheme.dp(context, 6))
         }
 
         val subtitle = TextView(context).apply {
-            text = "Histórico de eventos de acessibilidade, detecções e cliques de botões."
+            text = "Histórico recente de detecções e cliques de acessibilidade."
             setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, 0, 0, AntTheme.dp(context, 12))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setPadding(0, AntTheme.dp(context, 4), 0, AntTheme.dp(context, 12))
         }
 
         val logs = preferences.diagnosticLogs()
         val logsDisplay = TextView(context).apply {
-            text = if (logs.isBlank()) "Nenhum log registrado ainda.\nAbra um app de streaming para começar a monitorar." else logs
+            text = if (logs.isBlank()) "Nenhum evento registrado ainda.\nAbra um aplicativo de streaming para começar a monitorar." else logs
             setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             typeface = Typeface.MONOSPACE
-            setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 12), AntTheme.dp(context, 12), AntTheme.dp(context, 12))
-            background = AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
+            setPadding(AntTheme.dp(context, 10), AntTheme.dp(context, 10), AntTheme.dp(context, 10), AntTheme.dp(context, 10))
+            background = AntTheme.rounded(AntTheme.BG_CANVAS, 6f, AntTheme.CARD_BORDER, 1, context)
         }
 
         val logScroll = ScrollView(context).apply {
             val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 220))
-            params.bottomMargin = AntTheme.dp(context, 14)
+            params.bottomMargin = AntTheme.dp(context, 12)
             layoutParams = params
             addView(logsDisplay)
         }
@@ -61,28 +60,28 @@ class DiagnosticsDialog(
         val buttonsRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             val copyButton = Button(context).apply {
-                text = "Copiar Logs"
+                text = "Copiar"
                 setTextColor(AntTheme.TEXT_INVERSE)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 typeface = Typeface.DEFAULT_BOLD
-                background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 8f, context = context)
-                val params = LinearLayout.LayoutParams(0, AntTheme.dp(context, 42), 1f)
+                background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 6f, context = context)
+                val params = LinearLayout.LayoutParams(0, AntTheme.dp(context, 38), 1f)
                 params.marginEnd = AntTheme.dp(context, 8)
                 layoutParams = params
                 setOnClickListener {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                    clipboard?.setPrimaryClip(ClipData.newPlainText("AntSKIP Diagnostics", preferences.diagnosticLogs()))
-                    Toast.makeText(context, "Logs copiados para a área de transferência", Toast.LENGTH_SHORT).show()
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("AntSKIP Logs", preferences.diagnosticLogs()))
+                    Toast.makeText(context, "Copiado para a área de transferência", Toast.LENGTH_SHORT).show()
                 }
             }
 
             val clearButton = Button(context).apply {
                 text = "Limpar"
                 setTextColor(AntTheme.DANGER_TEXT)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 typeface = Typeface.DEFAULT_BOLD
-                background = AntTheme.rounded(AntTheme.DANGER_BG, 8f, AntTheme.DANGER_BORDER, 1, context)
-                layoutParams = LinearLayout.LayoutParams(0, AntTheme.dp(context, 42), 1f)
+                background = AntTheme.rounded(AntTheme.DANGER_BG, 6f, AntTheme.DANGER_BORDER, 1, context)
+                layoutParams = LinearLayout.LayoutParams(0, AntTheme.dp(context, 38), 1f)
                 setOnClickListener {
                     preferences.clearDiagnosticLogs()
                     logsDisplay.text = "Logs limpos com sucesso."
