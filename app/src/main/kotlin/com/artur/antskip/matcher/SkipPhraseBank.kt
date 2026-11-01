@@ -213,29 +213,6 @@ object SkipPhraseBank {
             "跳過片尾",
             "jenerigi atla",
         ),
-        SkipAction.PREVIEW to normalizedSet(
-            // Portuguese
-            "pular previa",
-            "pular prévia",
-            "pular pre visualizacao",
-            "pular pré-visualização",
-            "pular preview",
-            "pular trailer",
-            "pular previa do proximo",
-            "pular prévia do próximo",
-            // English
-            "skip preview",
-            "skip next preview",
-            "skip trailer",
-            "skip preview icon",
-            "skip-preview",
-            // Spanish
-            "saltar avance",
-            "omitir avance",
-            // German & Dutch
-            "vorschau uberspringen",
-            "preview overslaan",
-        ),
         SkipAction.NEXT_EPISODE to normalizedSet(
             // Portuguese
             "proximo episodio",

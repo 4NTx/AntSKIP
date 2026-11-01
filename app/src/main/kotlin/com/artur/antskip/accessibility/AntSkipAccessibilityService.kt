@@ -113,7 +113,6 @@ class AntSkipAccessibilityService : AccessibilityService() {
             SkipAction.INTRO -> R.string.toast_skipping_intro
             SkipAction.RECAP -> R.string.toast_skipping_recap
             SkipAction.CREDITS -> R.string.toast_skipping_credits
-            SkipAction.PREVIEW -> R.string.toast_skipping_preview
             SkipAction.NEXT_EPISODE -> R.string.toast_skipping_next_episode
         }
         mainHandler.post {

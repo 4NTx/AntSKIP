@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.content.Context
 import android.graphics.Typeface
 import android.util.TypedValue
-import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -17,6 +16,7 @@ import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
 import com.artur.antskip.matcher.SkipMatcher
+import com.artur.antskip.matcher.SkipPhraseBank
 import com.artur.antskip.matcher.normalizeForMatch
 import com.artur.antskip.ui.theme.AntTheme
 
@@ -33,22 +33,22 @@ class SimulatorDialog(
         }
 
         val title = TextView(context).apply {
-            text = "Simulador de Reconhecimento"
+            text = "Testar Reconhecimento de Botão"
             setTextColor(AntTheme.TEXT_PRIMARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, AntTheme.dp(context, 6))
+            setPadding(0, 0, 0, AntTheme.dp(context, 4))
         }
         val subtitle = TextView(context).apply {
-            text = "Digite o texto de um botão de streaming para testar instantaneamente se o AntSKIP o reconhece."
+            text = "Digite o texto de um botão de streaming para testar se o AntSKIP o reconhece."
             setTextColor(AntTheme.TEXT_SECONDARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, 0, 0, AntTheme.dp(context, 16))
+            setPadding(0, 0, 0, AntTheme.dp(context, 14))
         }
 
         // Provider dropdown
         val providerLabel = TextView(context).apply {
-            text = "Aplicativo de Streaming:"
+            text = "Streaming:"
             setTextColor(AntTheme.TEXT_SECONDARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setPadding(0, 0, 0, AntTheme.dp(context, 4))
@@ -65,7 +65,7 @@ class SimulatorDialog(
             text = "Texto do Botão (Ex: Pular abertura, Skip Intro):"
             setTextColor(AntTheme.TEXT_SECONDARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(0, AntTheme.dp(context, 14), 0, AntTheme.dp(context, 4))
+            setPadding(0, AntTheme.dp(context, 12), 0, AntTheme.dp(context, 4))
         }
         val input = EditText(context).apply {
             hint = "Ex: Pular abertura"
@@ -79,10 +79,10 @@ class SimulatorDialog(
         // Results card
         val resultCard = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 14), AntTheme.dp(context, 14), AntTheme.dp(context, 14), AntTheme.dp(context, 14))
+            setPadding(AntTheme.dp(context, 14), AntTheme.dp(context, 12), AntTheme.dp(context, 14), AntTheme.dp(context, 12))
             background = AntTheme.rounded(AntTheme.BG_CANVAS, 10f, AntTheme.CARD_BORDER, 1, context)
             val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            params.topMargin = AntTheme.dp(context, 16)
+            params.topMargin = AntTheme.dp(context, 14)
             layoutParams = params
         }
 
@@ -95,20 +95,20 @@ class SimulatorDialog(
         val resultText = TextView(context).apply {
             text = "Aguardando teste..."
             setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
             setPadding(0, AntTheme.dp(context, 4), 0, 0)
         }
         resultCard.addView(resultHeader)
         resultCard.addView(resultText)
 
         val testButton = Button(context).apply {
-            text = "Testar Reconhecimento"
+            text = "Verificar Botão"
             setTextColor(AntTheme.TEXT_INVERSE)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
             typeface = Typeface.DEFAULT_BOLD
             background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 10f, context = context)
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 46))
-            params.topMargin = AntTheme.dp(context, 16)
+            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 44))
+            params.topMargin = AntTheme.dp(context, 14)
             layoutParams = params
 
             setOnClickListener {
@@ -121,50 +121,30 @@ class SimulatorDialog(
                 val provider = StreamingProvider.entries[providerSpinner.selectedItemPosition]
                 val normalized = entered.normalizeForMatch()
 
-                // Check blocked
                 if (matcher.isBlocked(normalized)) {
-                    resultText.text = "BLOQUEADO: A frase está na lista de bloqueios."
+                    resultText.text = "BLOQUEADO: Esta frase é ignorada intencionalmente."
                     resultText.setTextColor(AntTheme.DANGER_TEXT)
                     return@setOnClickListener
                 }
 
-                // Check match
-                val matchedAction = when (provider) {
-                    StreamingProvider.CRUNCHYROLL -> {
-                        if (normalized in setOf("pular", "skip")) SkipAction.INTRO
-                        else SkipAction.entries.firstOrNull { action ->
-                            val phrases = when (action) {
-                                SkipAction.INTRO -> setOf("pular abertura", "pular introducao", "skip intro", "skip opening")
-                                SkipAction.RECAP -> setOf("pular resumo", "skip recap")
-                                SkipAction.CREDITS -> setOf("pular creditos", "skip credits", "skip ending")
-                                SkipAction.NEXT_EPISODE -> setOf("proximo episodio", "next episode", "play next")
-                                else -> emptySet()
-                            }
-                            phrases.any { normalized == it || normalized.contains(it) }
-                        } ?: com.artur.antskip.matcher.SkipPhraseBank.match(normalized) ?: matcher.matchCustomPhrase(normalized)
-                    }
-                    else -> com.artur.antskip.matcher.SkipPhraseBank.match(normalized) ?: matcher.matchCustomPhrase(normalized)
-                }
+                val matchedAction = SkipPhraseBank.match(normalized)
 
                 if (matchedAction == null) {
-                    resultText.text = "NÃO RECONHECIDO\nNenhuma regra ou frase cadastrada bateu com '$entered'."
+                    resultText.text = "NÃO RECONHECIDO\nNenhuma regra conhecida bateu com '$entered'."
                     resultText.setTextColor(AntTheme.DANGER_TEXT)
                 } else {
-                    val enabledGlobally = preferences.isActionEnabled(matchedAction)
-                    val enabledForProvider = preferences.isActionEnabledForProvider(provider, matchedAction)
-                    val sleepBlocked = matchedAction == SkipAction.NEXT_EPISODE && preferences.isNextEpisodeBlocked(provider)
+                    val appEnabled = preferences.isProviderEnabled(provider)
+                    val actionEnabled = preferences.isActionEnabled(matchedAction)
 
                     val statusMsg = buildString {
-                        append("RECONHECIDO COM SUCESSO!\n")
-                        append("• Ação: ${matchedAction.label} (${matchedAction.name})\n")
-                        append("• App: ${provider.label}\n")
-                        append("• Status no app: ${if (enabledForProvider) "Ativo" else "Desativado nas regras"}\n")
-                        if (sleepBlocked) {
-                            append("• Modo dormir: Bloqueado no momento para este app!\n")
-                        }
+                        append("✅ RECONHECIDO COM SUCESSO!\n")
+                        append("• Ação: ${matchedAction.label}\n")
+                        append("• Streaming: ${provider.label}\n")
+                        append("• Status do Streaming: ${if (appEnabled) "Ativo" else "Desativado nas opções"}\n")
+                        append("• Status da Ação: ${if (actionEnabled) "Ativo" else "Desativado nas opções"}")
                     }
                     resultText.text = statusMsg
-                    resultText.setTextColor(if (enabledForProvider && !sleepBlocked) AntTheme.SUCCESS_TEXT else AntTheme.WARNING_TEXT)
+                    resultText.setTextColor(if (appEnabled && actionEnabled) AntTheme.SUCCESS_TEXT else AntTheme.WARNING_TEXT)
                 }
             }
         }
@@ -178,9 +158,7 @@ class SimulatorDialog(
         container.addView(testButton)
         container.addView(resultCard)
 
-        val scroll = ScrollView(context).apply {
-            addView(container)
-        }
+        val scroll = ScrollView(context).apply { addView(container) }
 
         AlertDialog.Builder(context)
             .setView(scroll)

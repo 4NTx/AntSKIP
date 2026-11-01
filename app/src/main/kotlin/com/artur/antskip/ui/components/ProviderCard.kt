@@ -10,7 +10,6 @@ import android.widget.Switch
 import android.widget.TextView
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.StreamingProvider
-import com.artur.antskip.ui.ProviderRulesCopy
 import com.artur.antskip.ui.theme.AntTheme
 
 class ProviderCard(
@@ -18,12 +17,8 @@ class ProviderCard(
     private val provider: StreamingProvider,
     private val preferences: PreferenceStore,
     private val isInstalled: Boolean,
-    private val onCardClicked: () -> Unit,
     private val onToggleChanged: (Boolean) -> Unit,
 ) {
-    private lateinit var summaryText: TextView
-    private var sleepBadge: TextView? = null
-
     fun createView(): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -33,7 +28,6 @@ class ProviderCard(
             params.bottomMargin = AntTheme.dp(context, 10)
             layoutParams = params
 
-            // Top row: Brand pill, Title, Installed Badge, Switch
             val topRow = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -72,7 +66,6 @@ class ProviderCard(
                     isChecked = preferences.isProviderEnabled(provider)
                     setOnCheckedChangeListener { _, isChecked ->
                         preferences.setProviderEnabled(provider, isChecked)
-                        updateContent()
                         onToggleChanged(isChecked)
                     }
                 }
@@ -84,46 +77,18 @@ class ProviderCard(
                 addView(sw)
             }
 
-            summaryText = TextView(context).apply {
-                text = ProviderRulesCopy.summary(provider, preferences)
+            val desc = TextView(context).apply {
+                text = when (provider) {
+                    StreamingProvider.NETFLIX -> "Pula aberturas, resumos, créditos e botão final Próximo."
+                    StreamingProvider.CRUNCHYROLL -> "Pula aberturas, recaps e avança episódios automaticamente."
+                    StreamingProvider.PRIME_VIDEO -> "Pula intro e créditos protegendo contra menus do X-Ray."
+                }
                 setTextColor(AntTheme.TEXT_SECONDARY)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-                setPadding(0, AntTheme.dp(context, 6), 0, AntTheme.dp(context, 6))
-            }
-
-            val bottomRow = LinearLayout(context).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-
-                val tapHint = TextView(context).apply {
-                    text = "Toque para configurar regras e modo dormir ›"
-                    setTextColor(AntTheme.ACCENT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
-                    typeface = Typeface.DEFAULT_BOLD
-                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                }
-                addView(tapHint)
-
-                if (preferences.isSleepProtectionActive(provider)) {
-                    sleepBadge = AntTheme.badge(
-                        context,
-                        "Modo dormir ativo",
-                        AntTheme.WARNING_TEXT,
-                        AntTheme.WARNING_BG,
-                        AntTheme.WARNING_BORDER,
-                    )
-                    addView(sleepBadge)
-                }
+                setPadding(0, AntTheme.dp(context, 4), 0, 0)
             }
 
             addView(topRow)
-            addView(summaryText)
-            addView(bottomRow)
-
-            setOnClickListener { onCardClicked() }
+            addView(desc)
         }
-
-    fun updateContent() {
-        summaryText.text = ProviderRulesCopy.summary(provider, preferences)
-    }
 }

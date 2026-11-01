@@ -7,19 +7,13 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <queries>
-        <package android:name="com.crunchyroll.crunchyroid" />
-        <package android:name="com.crunchyroll.crunchyrollapp" />
         <package android:name="com.netflix.mediaclient" />
         <package android:name="com.netflix.ninja" />
+        <package android:name="com.crunchyroll.crunchyroid" />
+        <package android:name="com.crunchyroll.crunchyrollapp" />
         <package android:name="com.amazon.avod.thirdpartyclient" />
         <package android:name="com.amazon.avod" />
         <package android:name="com.amazon.amazonvideo.livingroom" />
-        <package android:name="com.disney.disneyplus" />
-        <package android:name="com.disney.disneyplus.tv" />
-        <package android:name="com.wbd.stream" />
-        <package android:name="com.hbo.hbonow" />
-        <package android:name="com.cbs.app" />
-        <package android:name="com.paramountplus" />
     </queries>
 
     <application

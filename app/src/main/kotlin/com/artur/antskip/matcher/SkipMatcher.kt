@@ -78,9 +78,8 @@ class SkipMatcher(
 
         return when (provider) {
             StreamingProvider.CRUNCHYROLL -> matchCrunchyrollAction(text)
-            StreamingProvider.NETFLIX -> matchNetflixAction(text, rootContextText) ?: matchNetflixCustomAction(text, rootContextText)
-            StreamingProvider.PRIME_VIDEO -> matchPrimeVideoAction(text) ?: matchCustomPhrase(text)
-            else -> phraseBank.match(text) ?: matchCustomPhrase(text)
+            StreamingProvider.NETFLIX -> matchNetflixAction(text, rootContextText)
+            StreamingProvider.PRIME_VIDEO -> matchPrimeVideoAction(text)
         }
     }
 
@@ -90,18 +89,11 @@ class SkipMatcher(
             viewId.contains("skip_recap") || viewId.contains("pular_resumo") || viewId.contains("pular_recap") -> SkipAction.RECAP
             viewId.contains("skip_credits") || viewId.contains("pular_creditos") || viewId.contains("skip_ending") -> SkipAction.CREDITS
             viewId.contains("next_episode") || viewId.contains("play_next") || viewId.contains("proximo_episodio") -> SkipAction.NEXT_EPISODE
-            viewId.contains("skip_preview") || viewId.contains("pular_previa") -> SkipAction.PREVIEW
             else -> null
         }
 
     private fun isActionAllowed(action: SkipAction, provider: StreamingProvider): Boolean =
-        when {
-            action == SkipAction.NEXT_EPISODE && preferences.isNextEpisodeBlocked(provider) -> false
-            action == SkipAction.CREDITS &&
-                preferences.isSleepProtectionActive(provider) &&
-                preferences.blocksCreditsDuringSleep(provider) -> false
-            else -> preferences.isActionEnabledForProvider(provider, action)
-        }
+        preferences.isActionEnabled(action) && preferences.isProviderEnabled(provider)
 
     private fun matchCrunchyrollAction(text: String): SkipAction? =
         if (text in CRUNCHYROLL_GENERIC_INTRO_PHRASES) {
@@ -109,7 +101,7 @@ class SkipMatcher(
         } else {
             CRUNCHYROLL_PHRASES.entries.firstOrNull { (_, phrases) ->
                 phrases.any { phrase -> text == phrase || text.contains(phrase) }
-            }?.key ?: phraseBank.match(text) ?: matchCustomPhrase(text)
+            }?.key ?: phraseBank.match(text)
         }
 
     private fun matchNetflixAction(text: String, rootContextText: String): SkipAction? {
@@ -135,19 +127,12 @@ class SkipMatcher(
             phrases.any { phrase -> text == phrase || text.contains(phrase) }
         }?.key ?: phraseBank.match(text)
 
-    private fun matchNetflixCustomAction(text: String, rootContextText: String): SkipAction? {
-        val action = matchCustomPhrase(text) ?: return null
-        if (action != SkipAction.NEXT_EPISODE) return action
-        return action.takeIf { hasNetflixEndPromptContext(rootContextText) }
-    }
-
     private fun hasNetflixEndPromptContext(rootContextText: String): Boolean =
         NETFLIX_END_PROMPT_CONTEXT_PHRASES.any { phrase ->
             rootContextText == phrase || rootContextText.contains(phrase)
         }
 
     private fun matchPrimeVideoAction(text: String): SkipAction? {
-        // Exclude Prime Video X-Ray controls
         if (PRIME_VIDEO_EXCLUDE_PHRASES.any { text.contains(it) }) {
             return null
         }
@@ -158,19 +143,8 @@ class SkipMatcher(
         }?.key ?: phraseBank.match(text)
     }
 
-    fun matchCustomPhrase(text: String): SkipAction? =
-        SkipAction.entries.firstOrNull { action ->
-            preferences.customPhrases(action)
-                .map { it.normalizeForMatch() }
-                .filter { it.isNotBlank() }
-                .any { phrase -> text == phrase || text.contains(phrase) }
-        }
-
     fun isBlocked(text: String): Boolean =
-        preferences.blockedPhrases()
-            .map { it.normalizeForMatch() }
-            .filter { it.isNotBlank() }
-            .any { phrase -> text == phrase || text.contains(phrase) }
+        DEFAULT_BLOCKED_PHRASES.any { text.contains(it) }
 
     private fun AccessibilityNodeInfo.clickCandidates(
         provider: StreamingProvider,
@@ -182,7 +156,7 @@ class SkipMatcher(
         var depth = 0
 
         while (current != null && depth < MAX_PARENT_CLIMB_DEPTH) {
-            if (current.isEnabled && current.isVisibleToUser && current.isValidClickTarget(provider, rootBounds)) {
+            if (current.isEnabled && current.isValidClickTarget(provider, rootBounds)) {
                 when {
                     current.isClickable -> clickableTargets.add(current)
                     current.hasClickAction() -> actionTargets.add(current)
@@ -199,24 +173,13 @@ class SkipMatcher(
         getBoundsInScreen(bounds)
         if (bounds.isEmpty || rootBounds.isEmpty) return false
 
-        // Safeguard: buttons must have reasonable dimensions (reject tiny 0x0 or screen-covering containers)
+        // Safeguard: buttons must have reasonable dimensions (reject 0x0 or entire screen)
         if (bounds.width() < MIN_BUTTON_DIMENSION_PX || bounds.height() < MIN_BUTTON_DIMENSION_PX) {
             return false
         }
 
-        val maxWidthRatio = when (provider) {
-            StreamingProvider.PRIME_VIDEO -> MAX_PRIME_VIDEO_BUTTON_WIDTH_RATIO
-            StreamingProvider.CRUNCHYROLL -> MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO
-            else -> MAX_GENERIC_BUTTON_WIDTH_RATIO
-        }
-        val maxHeightRatio = when (provider) {
-            StreamingProvider.PRIME_VIDEO -> MAX_PRIME_VIDEO_BUTTON_HEIGHT_RATIO
-            StreamingProvider.CRUNCHYROLL -> MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO
-            else -> MAX_GENERIC_BUTTON_HEIGHT_RATIO
-        }
-
-        return bounds.width() <= rootBounds.width() * maxWidthRatio &&
-            bounds.height() <= rootBounds.height() * maxHeightRatio
+        return bounds.width() <= rootBounds.width() * MAX_BUTTON_WIDTH_RATIO &&
+            bounds.height() <= rootBounds.height() * MAX_BUTTON_HEIGHT_RATIO
     }
 
     private fun AccessibilityNodeInfo.hasClickAction(): Boolean =
@@ -246,13 +209,20 @@ class SkipMatcher(
         const val MAX_VISITED_NODES = 350
         const val MAX_PARENT_CLIMB_DEPTH = 6
         const val MIN_BUTTON_DIMENSION_PX = 16
+        const val MAX_BUTTON_WIDTH_RATIO = 0.85f
+        const val MAX_BUTTON_HEIGHT_RATIO = 0.28f
 
-        const val MAX_CRUNCHYROLL_BUTTON_WIDTH_RATIO = 0.85f
-        const val MAX_CRUNCHYROLL_BUTTON_HEIGHT_RATIO = 0.25f
-        const val MAX_PRIME_VIDEO_BUTTON_WIDTH_RATIO = 0.85f
-        const val MAX_PRIME_VIDEO_BUTTON_HEIGHT_RATIO = 0.28f
-        const val MAX_GENERIC_BUTTON_WIDTH_RATIO = 0.85f
-        const val MAX_GENERIC_BUTTON_HEIGHT_RATIO = 0.28f
+        val DEFAULT_BLOCKED_PHRASES = setOf(
+            "assistir do inicio",
+            "watch from beginning",
+            "restart",
+            "reiniciar",
+            "trailer",
+            "mais informacoes",
+            "more info",
+            "detalhes",
+            "details",
+        )
 
         val PRIME_VIDEO_EXCLUDE_PHRASES = setOf(
             "x ray",
@@ -342,15 +312,6 @@ class SkipMatcher(
                 "skip ending",
                 "skip end credits",
             ),
-            SkipAction.PREVIEW to setOf(
-                "pular previa",
-                "pular pre visualizacao",
-                "pular preview",
-                "pular trailer",
-                "skip preview",
-                "skip next preview",
-                "skip trailer",
-            ),
             SkipAction.NEXT_EPISODE to setOf(
                 "proximo episodio em",
                 "next episode",
@@ -413,13 +374,6 @@ class SkipMatcher(
                 "skip credits",
                 "skip ending",
                 "skip end credits",
-            ),
-            SkipAction.PREVIEW to setOf(
-                "pular previa",
-                "pular pre visualizacao",
-                "pular preview",
-                "skip preview",
-                "skip next preview",
             ),
             SkipAction.NEXT_EPISODE to setOf(
                 "proximo episodio",

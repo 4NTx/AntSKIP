@@ -25,9 +25,7 @@ import com.artur.antskip.ui.components.HeroStatusCard
 import com.artur.antskip.ui.components.ProviderCard
 import com.artur.antskip.ui.components.QuickToolsSection
 import com.artur.antskip.ui.components.SleepTimerCard
-import com.artur.antskip.ui.dialogs.CustomPhrasesDialog
 import com.artur.antskip.ui.dialogs.DiagnosticsDialog
-import com.artur.antskip.ui.dialogs.ProviderConfigDialog
 import com.artur.antskip.ui.dialogs.SimulatorDialog
 import com.artur.antskip.ui.theme.AntTheme
 import com.artur.antskip.ui.updater.GitHubUpdateChecker
@@ -39,7 +37,6 @@ class MainActivity : Activity() {
     private var updateState: UpdateState = UpdateState.NotChecked
 
     private lateinit var heroCard: HeroStatusCard
-    private val providerCards = mutableListOf<ProviderCard>()
     private var isViewBuilt = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,7 +51,6 @@ class MainActivity : Activity() {
         super.onResume()
         if (isViewBuilt) {
             updateHeroStatus()
-            providerCards.forEach { it.updateContent() }
         } else {
             render()
         }
@@ -66,8 +62,6 @@ class MainActivity : Activity() {
     }
 
     private fun createContent(): ScrollView {
-        providerCards.clear()
-
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(AntTheme.dp(this@MainActivity, 16), 0, AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 24))
@@ -103,7 +97,7 @@ class MainActivity : Activity() {
         )
         rootLayout.addView(heroView)
 
-        // 2. Sleep Timer Card (Xitee1/sleep-timer style universal media pause & screen lock)
+        // 2. Sleep Timer Card (Universal media pause & screen lock, alarms 100% protected)
         val sleepTimerCard = SleepTimerCard(
             context = this,
             preferences = preferences,
@@ -111,38 +105,30 @@ class MainActivity : Activity() {
         )
         rootLayout.addView(sleepTimerCard.createView())
 
-        // 3. Quick Tools Section
+        // 3. Quick Tools Section (Test button, Logs, Updates)
         val tools = QuickToolsSection(
             context = this,
             onOpenSimulator = { SimulatorDialog(this, preferences).show() },
-            onOpenPhrases = { CustomPhrasesDialog(this, preferences).show { updateHeroStatus() } },
             onOpenDiagnostics = { DiagnosticsDialog(this, preferences).show { updateHeroStatus() } },
             onCheckUpdates = { showUpdateDialog() },
         ).createView()
         rootLayout.addView(tools)
 
-        // 4. Section: Streaming Apps
-        rootLayout.addView(createSectionHeader("Streamings Monitorados", "Toque em qualquer streaming para ajustar regras específicas e modo sono."))
+        // 4. Section: Streaming Apps (The Big 3)
+        rootLayout.addView(createSectionHeader("Streamings Suportados", "Ative os aplicativos que você utiliza para pular botões automaticamente."))
         StreamingProvider.entries.forEach { provider ->
             val card = ProviderCard(
                 context = this,
                 provider = provider,
                 preferences = preferences,
                 isInstalled = isAppInstalled(provider),
-                onCardClicked = {
-                    ProviderConfigDialog(this, preferences).show(provider) {
-                        providerCards.forEach { it.updateContent() }
-                        updateHeroStatus()
-                    }
-                },
                 onToggleChanged = { updateHeroStatus() },
             )
-            providerCards.add(card)
             rootLayout.addView(card.createView())
         }
 
         // 5. Section: Global Actions
-        rootLayout.addView(createSectionHeader("Ações Globais de Pulo", "Configurações padrão aplicadas a todos os aplicativos de streaming."))
+        rootLayout.addView(createSectionHeader("Ações de Pulo", "Escolha quais tipos de botões devem ser pulados automaticamente."))
         SkipAction.entries.forEach { action ->
             val actionCard = ActionToggleCard(
                 context = this,
@@ -214,7 +200,7 @@ class MainActivity : Activity() {
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
             val pDesc = TextView(this@MainActivity).apply {
-                text = "O AntSKIP não grava a tela, não lê vídeos, não acessa credenciais e funciona 100% offline. O temporizador de sono nunca silencia o canal de alarmes (STREAM_ALARM)."
+                text = "O AntSKIP funciona 100% offline, não grava tela e não acessa dados privados. O temporizador de sono nunca silencia o canal de alarmes (STREAM_ALARM)."
                 setTextColor(AntTheme.TEXT_MUTED)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11.5f)
                 setPadding(0, AntTheme.dp(this@MainActivity, 4), 0, 0)

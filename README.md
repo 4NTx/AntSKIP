@@ -3,120 +3,100 @@
 ![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)
 ![Status](https://img.shields.io/badge/status-active-blue)
-![Size](https://img.shields.io/badge/APK%20Size-~700%20KB-success)
+![Size](https://img.shields.io/badge/APK%20Size-~680%20KB-success)
 ![License](https://img.shields.io/badge/license-private-lightgrey)
 
-AntSKIP é um aplicativo Android ultra-leve que detecta e aperta automaticamente botões visíveis de pular em plataformas de streaming (Crunchyroll, Netflix, Prime Video, Disney+, Max, Paramount+ e mais). 
+O **AntSKIP** é um aplicativo Android profissional e ultra-leve projetado para automatizar cliques em botões de pular em streamings (**Netflix**, **Crunchyroll** e **Prime Video**) e fornecer um **Temporizador de Sono (Sleep Timer)** universal que desliga a tela e pausa qualquer mídia sem jamais afetar seus alarmes.
 
-Construído em **Kotlin puro com zero dependências externas** (sem AndroidX, sem Compose, sem bibliotecas pesadas de terceiros), mantendo o APK em apenas **~700 KB** com velocidade máxima, consumo mínimo de memória e sem risco de travamentos.
-
-O aplicativo opera de forma 100% ética e segura: não grava tela, não inspeciona tráfego de rede, não acessa contas ou DRM e roda totalmente offline no seu aparelho via `AccessibilityService`.
+Construído em **Kotlin puro com zero dependências externas**, o APK tem apenas **~680 KB**, consome o mínimo absoluto de bateria e memória RAM, e roda 100% offline via `AccessibilityService`.
 
 ---
 
-## Principais Novidades & Recursos
+## 🌟 Principais Recursos
 
-- **Visual Moderno Dark OLED**: Interface redesenhada com paleta dark profunda (`#0B0E14`), contraste alto, cantos arredondados modernos (16dp-20dp) e badges estilizados com as cores oficiais de cada streaming.
-- **Detecção Ultrarrápida (120ms)**: Latência reduzida de 500ms para 120ms para acionar o botão instantaneamente assim que ele surgir na tela.
-- **Clique Inteligente em Multi-camada**: 
-  1. Clique nativo de acessibilidade (`ACTION_CLICK`).
-  2. Escalamento automático na árvore de nós (para botões onde a ação de clique fica no container pai ou avô).
-  3. **Universal Gesture Fallback**: Se o player do streaming estiver em um container customizado (SurfaceView, ExoPlayer customizado, Compose) que não responda a cliques de acessibilidade, o AntSKIP despacha um toque por coordenadas diretamente no centro do botão detectado.
-- **Simulador Interativo Integrado**: Permite testar qualquer botão ou frase ("Pular abertura", "Skip Intro", etc.) em tempo real direto na interface para validar qual ação e app seriam acionados antes de assistir.
-- **Detecção de Apps Instalados**: O app identifica automaticamente se a Netflix, Crunchyroll, Prime Video, Disney+, Max ou Paramount+ estão instalados no aparelho via declaração `<queries>`.
-- **Prevenção de Falsos Cliques**: Validação rígida de bounding box para garantir que o app nunca clique na tela inteira do vídeo por engano (limite de 85% de largura e 28% de altura).
-- **Filtro Especial Prime Video**: Regra que impede cliques acidentais nos menus e overlays do X-Ray ("Elenco", "Música", "Cenas").
-- **Modo Dormir Inteligente**: Permite agendar horários recorrentes ou pausar o avanço de episódios por 1h, 2h ou 4h, além de opção para bloquear pulo de créditos durante o sono.
-- **Editor Completo de Frases**: Adicione frases personalizadas em qualquer idioma ou bloqueie termos indesejados.
+- **Pulo Automático Instantâneo (~100ms)**: Toca em aberturas, resumos, créditos e avança episódios automaticamente no momento exato em que o botão surge na tela.
+- **Clique Inteligente com Fallback por Gestos**: Se o player do streaming estiver usando camadas customizadas (SurfaceView/Compose) que bloqueiam o clique de acessibilidade comum, o AntSKIP toca automaticamente por coordenadas no centro do botão.
+- **🌙 Temporizador de Sono & Desligar Tela (Sleep Timer)**:
+  - **Pausa Universal**: Pausa Spotify, YouTube, Netflix, podcasts ou qualquer áudio/vídeo tocando no aparelho.
+  - **🛡️ 100% Seguro para Alarmes**: O canal de alarmes do sistema (`STREAM_ALARM`) **nunca é tocado ou silenciado**. O despertador tocará normalmente no dia seguinte.
+  - **Desliga / Bloqueia a Tela**: Apaga a tela do celular via acessibilidade de forma suave, mantendo o desbloqueio biométrico (digital e facial) ativo ao religar.
+  - **Notificação Interativa**: Notificação ao vivo com botões de ajuste direto (`+5 min`, `-5 min` e `Parar`).
+- **Visual Dark OLED Profundo**: Interface elegante, limpa e pensada para telas AMOLED (`#0B0E14`), sem menus desnecessários ou opções confusas.
+- **Simulador de Teste**: Ferramenta no app para testar frases de botões em tempo real.
 
 ---
 
-## Streamings Suportados
+## 🎬 Streamings Suportados
 
-| App | Pacotes Android Suportados | Status |
+| Streaming | Pacotes Android Suportados | Recursos |
 | --- | --- | --- |
-| **Crunchyroll** | `com.crunchyroll.crunchyroid`, `com.crunchyroll.crunchyrollapp` | Suporte Total (Intro, Recap, Créditos e Próximo Episódio) |
-| **Netflix** | `com.netflix.mediaclient`, `com.netflix.ninja` | Suporte Total (Pular abertura, Resumo, Créditos e Próximo final) |
-| **Prime Video** | `com.amazon.avod.thirdpartyclient`, `com.amazon.avod`, `com.amazon.amazonvideo.livingroom` | Suporte Total (Proteção avançada anti X-Ray) |
-| **Disney+** | `com.disney.disneyplus`, `com.disney.disneyplus.tv` | Suporte Nativo |
-| **Max** | `com.wbd.stream`, `com.hbo.hbonow`, `com.hbo.go` | Suporte Nativo |
-| **Paramount+** | `com.cbs.app`, `com.paramountplus`, `com.cbs.ott` | Suporte Nativo |
+| **Netflix** | `com.netflix.mediaclient`, `com.netflix.ninja` | Pular Abertura, Resumo, Créditos e botão final Próximo |
+| **Crunchyroll** | `com.crunchyroll.crunchyroid`, `com.crunchyroll.crunchyrollapp` | Pular Abertura, Recaps e Avanço de Episódio |
+| **Prime Video** | `com.amazon.avod.thirdpartyclient`, `com.amazon.avod`, `com.amazon.amazonvideo.livingroom` | Pular Intro e Créditos com proteção anti-menus X-Ray |
 
 ---
 
-## Ações de Pulo Suportadas
+## ⚡ Ações Suportadas
 
-| Ação | Padrão | Exemplos de Texto Reconhecidos |
-| --- | --- | --- |
-| **Aberturas e intros** | Ativado | `Pular abertura`, `Skip Intro`, `Pular introdução`, `Skip Opening`, `Saltar intro` |
-| **Recaps e resumos** | Ativado | `Pular resumo`, `Pular recapitulação`, `Skip Recap`, `Saltar resumen` |
-| **Créditos e encerramentos** | Ativado | `Pular créditos`, `Pular encerramento`, `Skip Credits`, `Skip Ending` |
-| **Previews e trailers** | Opcional | `Pular prévia`, `Pular trailer`, `Skip Preview` |
-| **Próximo episódio** | Configurável | `Próximo`, `Próximo episódio`, `Next Episode`, `Play Next Episode` |
-
-O banco de expressões nativo inclui termos em Português, Inglês, Espanhol, Francês, Alemão, Italiano, Holandês, Polonês, Japonês, Coreano, Chinês e Turco.
+- **Pular Aberturas**: Pula intros e temas de abertura automaticamente.
+- **Pular Resumos**: Pula recaps do episódio anterior.
+- **Pular Créditos**: Pula os créditos finais para não perder tempo.
+- **Próximo Episódio**: Avança para o próximo episódio automaticamente sem precisar de controle ou toque manual.
 
 ---
 
-## Como Instalar e Ativar
+## 📱 Como Instalar e Usar
 
-1. Baixe o APK assinado ou gere o APK via Gradle:
+1. Compile o APK ou baixe o APK assinado:
    ```bash
-   gradle assembleDebug
+   gradle assembleRelease
    ```
-2. Instale o APK gerado no seu dispositivo Android.
-3. Abra o **AntSKIP**.
-4. Toque no botão **Ativar acessibilidade**.
-5. Ative o serviço **AntSKIP**.
-   *(Se o Android exibir a mensagem de "Configurações Restritas", use o botão "Permitir Configurações Restritas" dentro do AntSKIP para liberar o acesso).*
-6. Escolha quais streamings e tipos de pulo você deseja ativos.
-7. Abra seu streaming e assista ao seu conteúdo! Quando o AntSKIP pular um botão, aparecerá uma notificação discreta na tela (ex: `Pulando abertura`).
+2. Instale o APK no seu aparelho Android.
+3. Abra o **AntSKIP** e toque em **Ativar Acessibilidade**.
+4. Ative o serviço **AntSKIP**.
+5. Pronto! Basta abrir a Netflix, Crunchyroll ou Prime Video. Quando um botão surgir, o AntSKIP aperta sozinho para você.
 
 ---
 
-## Arquitetura do Projeto
-
-O código foi totalmente modularizado e padronizado:
+## 🏗️ Estrutura do Projeto
 
 ```text
 app/src/main/kotlin/com/artur/antskip
 ├── accessibility/
-│   └── AntSkipAccessibilityService.kt      # Serviço de Acessibilidade, timeout 120ms, cliques e gestos
+│   └── AntSkipAccessibilityService.kt      # Detecção rápida, cliques, gestos e desligamento de tela
 ├── data/
-│   └── PreferenceStore.kt                 # Armazenamento e persistência das regras e preferências
+│   └── PreferenceStore.kt                 # Preferências simplificadas e limpas
 ├── domain/
-│   ├── SkipAction.kt                      # Enum de ações de pulo
-│   └── StreamingProvider.kt               # Enum de streamings com cores, aliases e regras padrão
+│   ├── SkipAction.kt                      # Ações de pulo essenciais
+│   └── StreamingProvider.kt               # Netflix, Crunchyroll e Prime Video
 ├── matcher/
-│   ├── NodeText.kt                        # Extração de textos e IDs de botões
-│   ├── SkipMatcher.kt                     # Motor principal de matching e validação de bounding box
-│   ├── SkipPhraseBank.kt                  # Dicionário poliglota de termos e expressões
-│   └── TextNormalization.kt               # Normalizador de acentuação, casing e caracteres
+│   ├── NodeText.kt                        # Extração de texto e IDs de botões
+│   ├── SkipMatcher.kt                     # Validação de bounding box, IDs e anti-falso-clique
+│   ├── SkipPhraseBank.kt                  # Dicionário poliglota de termos
+│   └── TextNormalization.kt               # Normalizador de caracteres e acentos
+├── service/
+│   └── SleepTimerService.kt               # Foreground service do Sleep Timer com controles na notificação
 └── ui/
-    ├── MainActivity.kt                    # Atividade principal enxuta e desacoplada
-    ├── ProviderRulesCopy.kt               # Textos de orientação e avisos por app
+    ├── MainActivity.kt                    # Atividade limpa, sem recriações de tela
     ├── theme/
-    │   └── AntTheme.kt                    # Design tokens Dark OLED, utilitários visuais e gradientes
+    │   └── AntTheme.kt                    # Design tokens Dark OLED
     ├── components/
-    │   ├── HeroStatusCard.kt              # Card de status em tempo real com indicador luminoso
-    │   ├── ProviderCard.kt                # Card com cores oficiais, status de instalação e regras
-    │   ├── ActionToggleCard.kt            # Linha de toggle para ações globais
-    │   └── QuickToolsSection.kt           # Acesso rápido a Simulador, Frases, Logs e Updates
+    │   ├── HeroStatusCard.kt              # Status principal e chave geral
+    │   ├── SleepTimerCard.kt              # Card do Sleep Timer com presets e contagem ao vivo
+    │   ├── ProviderCard.kt                # Cards de cada streaming com switch direto
+    │   ├── ActionToggleCard.kt            # Toggles das 4 ações principais
+    │   └── QuickToolsSection.kt           # Acesso rápido a Testar Botão, Logs e Atualizações
     ├── dialogs/
-    │   ├── SimulatorDialog.kt             # Simulador de teste interativo de botões
-    │   ├── ProviderConfigDialog.kt        # Diálogo de regras individuais por streaming
-    │   ├── SleepModeDialog.kt             # Diálogo de modo sono e pausas temporárias
-    │   ├── CustomPhrasesDialog.kt         # Editor de termos customizados e bloqueios
-    │   └── DiagnosticsDialog.kt           # Visualizador e copiador de logs de diagnóstico
+    │   ├── SimulatorDialog.kt             # Teste de frases em tempo real
+    │   └── DiagnosticsDialog.kt           # Visualizador e copiador de logs
     └── updater/
-        └── GitHubUpdateChecker.kt         # Checagem em background de novas releases no GitHub
+        └── GitHubUpdateChecker.kt         # Checagem em background de releases no GitHub
 ```
 
 ---
 
-## Modelo de Segurança & Privacidade
+## 🛡️ Segurança e Privacidade
 
-- **Zero Acesso a Vídeo**: Não acessa frames, codecs ou reprodução de vídeo.
-- **Sem Captura de Tela**: Não utiliza APIs de `MediaProjection` ou screenshot.
-- **Sem Interceptação de Rede**: Todas as regras de matching são avaliadas localmente.
-- **100% Offline**: Nenhuma informação de uso, histórico ou diagnóstico sai do aparelho.
+- **100% Offline**: Sem coleta de dados, sem anúncios e sem rastreadores.
+- **Sem Gravação de Tela**: Não usa APIs de captura de tela (`MediaProjection`).
+- **Segurança para Alarmes**: O Sleep Timer nunca silencia o canal de alarmes do Android.
