@@ -259,17 +259,17 @@ class MainActivity : Activity() {
 
             heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
 
+            headerStatusBadge.animate().cancel()
+            headerStatusBadge.scaleX = 1f
+            headerStatusBadge.scaleY = 1f
+            headerStatusBadge.alpha = 1f
+
             if (isServiceEnabled) {
-                headerStatusBadge.text = "● ATIVO"
+                headerStatusBadge.text = "Ativo"
                 headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)
                 headerStatusBadge.background = AntTheme.rounded(AntTheme.SUCCESS_BG, 8f, AntTheme.SUCCESS_BORDER, 1, this)
-                AntTheme.startPulsing(headerStatusBadge)
             } else {
-                headerStatusBadge.animate().cancel()
-                headerStatusBadge.scaleX = 1f
-                headerStatusBadge.scaleY = 1f
-                headerStatusBadge.alpha = 1f
-                headerStatusBadge.text = "AÇÃO NECESSÁRIA"
+                headerStatusBadge.text = "Desativado"
                 headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
                 headerStatusBadge.background = AntTheme.rounded(AntTheme.WARNING_BG, 8f, AntTheme.WARNING_BORDER, 1, this)
             }

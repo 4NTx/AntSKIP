@@ -70,14 +70,13 @@ class SleepTimerCard(
 
                 val statusBadge = TextView(context).apply {
                     tag = "timer_status_badge"
-                    text = "● ATIVO"
+                    text = "Ativo"
                     setTextColor(AntTheme.SUCCESS_TEXT)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
                     typeface = Typeface.DEFAULT_BOLD
                     background = AntTheme.rounded(AntTheme.SUCCESS_BG, 6f, AntTheme.SUCCESS_BORDER, 1, context)
                     setPadding(AntTheme.dp(context, 8), AntTheme.dp(context, 3), AntTheme.dp(context, 8), AntTheme.dp(context, 3))
                     visibility = if (SleepTimerService.isRunning) View.VISIBLE else View.GONE
-                    if (SleepTimerService.isRunning) AntTheme.startPulsing(this)
                 }
 
                 addView(badge)

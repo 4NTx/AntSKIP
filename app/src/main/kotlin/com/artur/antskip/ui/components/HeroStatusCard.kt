@@ -53,7 +53,7 @@ class HeroStatusCard(
                     layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply {
                         marginEnd = AntTheme.dp(context, 10)
                     }
-                    AntTheme.startPulsing(this)
+                    AntTheme.startSubtlePulse(this)
                 }
 
                 val title = TextView(context).apply {

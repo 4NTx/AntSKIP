@@ -150,14 +150,14 @@ object AntTheme {
         }
 
     @SuppressLint("ClickableViewAccessibility")
-    fun addPressFeedback(view: View, scale: Float = 0.96f) {
+    fun addPressFeedback(view: View, scale: Float = 0.97f) {
         view.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     v.animate()
                         .scaleX(scale)
                         .scaleY(scale)
-                        .setDuration(90)
+                        .setDuration(70)
                         .setInterpolator(DecelerateInterpolator())
                         .start()
                 }
@@ -165,8 +165,8 @@ object AntTheme {
                     v.animate()
                         .scaleX(1.0f)
                         .scaleY(1.0f)
-                        .setDuration(130)
-                        .setInterpolator(OvershootInterpolator(1.3f))
+                        .setDuration(100)
+                        .setInterpolator(DecelerateInterpolator())
                         .start()
                 }
             }
@@ -174,24 +174,14 @@ object AntTheme {
         }
     }
 
-    fun startPulsing(view: View) {
-        val scaleX = ObjectAnimator.ofFloat(view, "scaleX", 0.85f, 1.25f).apply {
+    fun startSubtlePulse(view: View) {
+        view.animate().cancel()
+        view.scaleX = 1.0f
+        view.scaleY = 1.0f
+        ObjectAnimator.ofFloat(view, "alpha", 0.5f, 1.0f).apply {
             repeatCount = ValueAnimator.INFINITE
             repeatMode = ValueAnimator.REVERSE
-            duration = 1000
-        }
-        val scaleY = ObjectAnimator.ofFloat(view, "scaleY", 0.85f, 1.25f).apply {
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            duration = 1000
-        }
-        val alpha = ObjectAnimator.ofFloat(view, "alpha", 0.65f, 1.0f).apply {
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-            duration = 1000
-        }
-        AnimatorSet().apply {
-            playTogether(scaleX, scaleY, alpha)
+            duration = 1100
             start()
         }
     }
