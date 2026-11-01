@@ -11,14 +11,15 @@ android {
         applicationId "com.artur.antskip"
         minSdk 26
         targetSdk 35
-        versionCode 34
-        versionName "1.34"
+        versionCode 35
+        versionName "1.35"
     }
 
     signingConfigs {
         debug {
             v1SigningEnabled true
             v2SigningEnabled true
+            enableV3Signing true
         }
     }
 

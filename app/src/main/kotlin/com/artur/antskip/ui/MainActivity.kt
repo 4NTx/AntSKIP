@@ -15,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -72,6 +73,10 @@ class MainActivity : Activity() {
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(AntTheme.dp(this@MainActivity, 16), 0, AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 32))
+            layoutTransition = android.animation.LayoutTransition().apply {
+                enableTransitionType(android.animation.LayoutTransition.CHANGING)
+                setDuration(220)
+            }
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -83,13 +88,13 @@ class MainActivity : Activity() {
         val activeProviders = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
         val totalProviders = StreamingProvider.entries.size
 
-        // 1. Top Header Bar (Title, version, subtle status pill)
+        // 1. Top Header Bar (Title, version, pulsing status pill)
         val headerBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             val hParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             hParams.topMargin = AntTheme.dp(this@MainActivity, 8)
-            hParams.bottomMargin = AntTheme.dp(this@MainActivity, 14)
+            hParams.bottomMargin = AntTheme.dp(this@MainActivity, 16)
             layoutParams = hParams
 
             val titleColumn = LinearLayout(this@MainActivity).apply {
@@ -99,12 +104,12 @@ class MainActivity : Activity() {
                 val appTitle = TextView(this@MainActivity).apply {
                     text = "AntSKIP"
                     setTextColor(AntTheme.TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                 }
 
                 val versionText = TextView(this@MainActivity).apply {
-                    text = "v${updater.installedVersionName()}"
+                    text = "v${updater.installedVersionName()} • Pular intros automático"
                     setTextColor(AntTheme.TEXT_MUTED)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                 }
@@ -114,10 +119,16 @@ class MainActivity : Activity() {
             }
 
             headerStatusBadge = TextView(this@MainActivity).apply {
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
-                setPadding(AntTheme.dp(this@MainActivity, 10), AntTheme.dp(this@MainActivity, 4), AntTheme.dp(this@MainActivity, 10), AntTheme.dp(this@MainActivity, 4))
+                setPadding(AntTheme.dp(this@MainActivity, 10), AntTheme.dp(this@MainActivity, 5), AntTheme.dp(this@MainActivity, 10), AntTheme.dp(this@MainActivity, 5))
+                AntTheme.addPressFeedback(this)
+                setOnClickListener {
+                    if (!isAccessibilityServiceEnabled()) {
+                        openAccessibilitySettings()
+                    }
+                }
             }
 
             addView(titleColumn)
@@ -149,12 +160,12 @@ class MainActivity : Activity() {
         rootLayout.addView(sleepTimerCard.createView())
 
         // 4. Section: Aplicativos (Grouped Card)
-        rootLayout.addView(createSectionTitle("APLICATIVOS"))
+        rootLayout.addView(createSectionTitle("APLICATIVOS SUPORTADOS"))
         val providersGroup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, this@MainActivity)
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 14f, AntTheme.CARD_BORDER, 1, this@MainActivity)
             val pParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            pParams.bottomMargin = AntTheme.dp(this@MainActivity, 14)
+            pParams.bottomMargin = AntTheme.dp(this@MainActivity, 16)
             layoutParams = pParams
 
             val providersList = StreamingProvider.entries
@@ -175,12 +186,12 @@ class MainActivity : Activity() {
         rootLayout.addView(providersGroup)
 
         // 5. Section: Ações Automáticas (Grouped Card)
-        rootLayout.addView(createSectionTitle("AÇÕES AUTOMÁTICAS"))
+        rootLayout.addView(createSectionTitle("AÇÕES DE PULAR"))
         val actionsGroup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, this@MainActivity)
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 14f, AntTheme.CARD_BORDER, 1, this@MainActivity)
             val aParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            aParams.bottomMargin = AntTheme.dp(this@MainActivity, 14)
+            aParams.bottomMargin = AntTheme.dp(this@MainActivity, 16)
             layoutParams = aParams
 
             val actionsList = SkipAction.entries
@@ -211,7 +222,7 @@ class MainActivity : Activity() {
 
         // 7. Minimalist Footer
         val footer = TextView(this).apply {
-            text = "AntSKIP • 100% offline e privativo"
+            text = "AntSKIP • 100% offline, seguro e privativo"
             setTextColor(AntTheme.TEXT_MUTED)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
             gravity = Gravity.CENTER
@@ -249,13 +260,18 @@ class MainActivity : Activity() {
             heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
 
             if (isServiceEnabled) {
-                headerStatusBadge.text = "Ativo"
+                headerStatusBadge.text = "● ATIVO"
                 headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)
-                headerStatusBadge.background = AntTheme.rounded(AntTheme.SUCCESS_BG, 6f, AntTheme.SUCCESS_BORDER, 1, this)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.SUCCESS_BG, 8f, AntTheme.SUCCESS_BORDER, 1, this)
+                AntTheme.startPulsing(headerStatusBadge)
             } else {
-                headerStatusBadge.text = "Desativado"
-                headerStatusBadge.setTextColor(AntTheme.DANGER_TEXT)
-                headerStatusBadge.background = AntTheme.rounded(AntTheme.DANGER_BG, 6f, AntTheme.DANGER_BORDER, 1, this)
+                headerStatusBadge.animate().cancel()
+                headerStatusBadge.scaleX = 1f
+                headerStatusBadge.scaleY = 1f
+                headerStatusBadge.alpha = 1f
+                headerStatusBadge.text = "AÇÃO NECESSÁRIA"
+                headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.WARNING_BG, 8f, AntTheme.WARNING_BORDER, 1, this)
             }
         } catch (_: Exception) {
         }
@@ -378,14 +394,67 @@ class MainActivity : Activity() {
                 updateState = state
                 when (state) {
                     is UpdateState.UpdateAvailable -> {
-                        AlertDialog.Builder(this)
-                            .setTitle("Atualização disponível: v${state.latestVersion}")
-                            .setMessage("Uma versão mais recente está disponível no GitHub.")
-                            .setPositiveButton("Baixar") { _, _ ->
-                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.releaseUrl)))
+                        val d = AlertDialog.Builder(this).create()
+                        val container = LinearLayout(this).apply {
+                            orientation = LinearLayout.VERTICAL
+                            setPadding(AntTheme.dp(this@MainActivity, 20), AntTheme.dp(this@MainActivity, 18), AntTheme.dp(this@MainActivity, 20), AntTheme.dp(this@MainActivity, 18))
+                            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 16f, AntTheme.CARD_BORDER, 1, this@MainActivity)
+
+                            val t = TextView(this@MainActivity).apply {
+                                text = "Nova versão: v${state.latestVersion}"
+                                setTextColor(AntTheme.TEXT_PRIMARY)
+                                setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                                typeface = android.graphics.Typeface.DEFAULT_BOLD
                             }
-                            .setNegativeButton("Fechar", null)
-                            .show()
+                            val m = TextView(this@MainActivity).apply {
+                                text = "Uma versão mais recente do AntSKIP está disponível para download no GitHub."
+                                setTextColor(AntTheme.TEXT_SECONDARY)
+                                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                                setPadding(0, AntTheme.dp(this@MainActivity, 6), 0, AntTheme.dp(this@MainActivity, 16))
+                            }
+                            val btnRow = LinearLayout(this@MainActivity).apply {
+                                orientation = LinearLayout.HORIZONTAL
+                                val dlBtn = Button(this@MainActivity).apply {
+                                    text = "Baixar Agora"
+                                    setTextColor(AntTheme.TEXT_PRIMARY)
+                                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                                    background = AntTheme.rippleGradientButton(
+                                        startColor = AntTheme.ACCENT_GRADIENT_START,
+                                        endColor = AntTheme.ACCENT_GRADIENT_END,
+                                        radiusDp = 8f,
+                                        context = this@MainActivity,
+                                    )
+                                    layoutParams = LinearLayout.LayoutParams(0, AntTheme.dp(this@MainActivity, 40), 1f).apply {
+                                        marginEnd = AntTheme.dp(this@MainActivity, 8)
+                                    }
+                                    AntTheme.addPressFeedback(this)
+                                    setOnClickListener {
+                                        d.dismiss()
+                                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.releaseUrl)))
+                                    }
+                                }
+                                val closeBtn = Button(this@MainActivity).apply {
+                                    text = "Depois"
+                                    setTextColor(AntTheme.TEXT_MUTED)
+                                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                                    background = AntTheme.rippleButton(AntTheme.CARD_SURFACE_HOVER, radiusDp = 8f, context = this@MainActivity)
+                                    layoutParams = LinearLayout.LayoutParams(0, AntTheme.dp(this@MainActivity, 40), 0.8f)
+                                    AntTheme.addPressFeedback(this)
+                                    setOnClickListener { d.dismiss() }
+                                }
+                                addView(dlBtn)
+                                addView(closeBtn)
+                            }
+                            addView(t)
+                            addView(m)
+                            addView(btnRow)
+                        }
+                        d.setView(container)
+                        d.show()
+                        d.window?.setBackgroundDrawableResource(android.R.color.transparent)
+                        d.window?.setDimAmount(0.65f)
                     }
                     is UpdateState.UpToDate -> {
                         Toast.makeText(this, "O AntSKIP já está na versão mais recente (v${state.latestVersion})", Toast.LENGTH_SHORT).show()

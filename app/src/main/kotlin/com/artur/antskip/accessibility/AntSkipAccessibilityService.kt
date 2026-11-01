@@ -23,7 +23,6 @@ class AntSkipAccessibilityService : AccessibilityService() {
     private val matcher by lazy { SkipMatcher(preferences) }
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private var lastClickAtMillis = 0L
-    private var lastNoMatchLogAtMillis = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -35,6 +34,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
             AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
             AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
         serviceInfo = info
+        preferences.appendDiagnosticLog("Serviço de acessibilidade ativo e pronto")
     }
 
     override fun onDestroy() {
@@ -42,6 +42,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
         if (instance == this) {
             instance = null
         }
+        preferences.appendDiagnosticLog("Serviço de acessibilidade desativado")
     }
 
     fun lockScreen(): Boolean =
@@ -55,54 +56,35 @@ class AntSkipAccessibilityService : AccessibilityService() {
         val eventPackage = event?.packageName?.toString().orEmpty()
         var provider = StreamingProvider.fromPackageName(eventPackage)
 
-        val root = rootInActiveWindow
-        if (provider == null && root != null) {
+        // PERFORMANCE: If event is from another app, return immediately without touching IPC!
+        if (provider == null) {
+            if (eventPackage.isNotBlank()) return
+            val root = rootInActiveWindow ?: return
             val rootPackage = root.packageName?.toString().orEmpty()
-            provider = StreamingProvider.fromPackageName(rootPackage)
+            provider = StreamingProvider.fromPackageName(rootPackage) ?: return
         }
 
-        if (provider == null) return
-
-        if (!preferences.isAutomationEnabled) {
-            logThrottled("event=${event?.eventType} provider=${provider.label} ignored=automation_disabled")
-            return
-        }
-        if (!preferences.isProviderEnabled(provider)) {
-            logThrottled("event=${event?.eventType} provider=${provider.label} ignored=provider_disabled")
+        if (!preferences.isAutomationEnabled || !preferences.isProviderEnabled(provider)) {
             return
         }
 
         val now = SystemClock.elapsedRealtime()
         if (now - lastClickAtMillis < CLICK_COOLDOWN_MS) return
 
-        if (root == null) {
-            logThrottled("event=${event?.eventType} provider=${provider.label} result=no_active_window")
-            return
-        }
+        val root = rootInActiveWindow ?: return
 
-        val match = matcher.findTarget(root, provider)
-        if (match == null) {
-            logThrottled("event=${event?.eventType} provider=${provider.label} result=no_match")
-            return
-        }
+        val match = matcher.findTarget(root, provider) ?: return
 
         val standardClicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
         val gestureClicked = !standardClicked && canUseGestureFallback(match) && tapBounds(provider, match.action, match.gestureBounds)
         val success = standardClicked || gestureClicked
 
-        val logLine = "event=${event?.eventType} provider=${provider.label} action=${match.action.name} " +
-            "targets=${match.targets.size} clicked=$success gesture=$gestureClicked " +
-            "visited=${match.visitedNodes} bounds=${match.gestureBounds.flattenToString()} text='${match.matchedText}'"
-
-        if (match.targets.isEmpty() && !gestureClicked) {
-            logThrottled(logLine)
-        } else {
-            preferences.appendDiagnosticLog(logLine)
-        }
-
         if (success) {
             lastClickAtMillis = now
+            preferences.appendDiagnosticLog("PULOU ${match.action.label} no ${provider.label} ('${match.matchedText}')")
             showSkipToast(match.action)
+        } else if (match.targets.isNotEmpty() || gestureClicked) {
+            preferences.appendDiagnosticLog("Falha ao tocar em: ${match.action.label} no ${provider.label} ('${match.matchedText}')")
         }
     }
 
@@ -118,13 +100,6 @@ class AntSkipAccessibilityService : AccessibilityService() {
         mainHandler.post {
             Toast.makeText(this, getString(messageRes), Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun logThrottled(message: String) {
-        val now = SystemClock.elapsedRealtime()
-        if (now - lastNoMatchLogAtMillis < NO_MATCH_LOG_COOLDOWN_MS) return
-        lastNoMatchLogAtMillis = now
-        preferences.appendDiagnosticLog(message)
     }
 
     private fun canUseGestureFallback(match: SkipMatcher.MatchResult): Boolean =
@@ -151,7 +126,6 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
         private const val SERVICE_NOTIFICATION_TIMEOUT_MS = 100L
         private const val CLICK_COOLDOWN_MS = 2_000L
-        private const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
         private const val GESTURE_TAP_DURATION_MS = 60L
     }
 }

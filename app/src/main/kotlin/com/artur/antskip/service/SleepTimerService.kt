@@ -108,6 +108,9 @@ class SleepTimerService : Service() {
     private fun startTimer(seconds: Long) {
         countDownTimer?.cancel()
         remainingSeconds = seconds
+        if (totalDurationSeconds <= 0L || seconds > totalDurationSeconds) {
+            totalDurationSeconds = seconds
+        }
         isRunning = true
 
         acquireWakeLock(remainingSeconds)
@@ -142,6 +145,7 @@ class SleepTimerService : Service() {
         countDownTimer = null
         isRunning = false
         remainingSeconds = 0L
+        totalDurationSeconds = 0L
         releaseWakeLock()
         onTickListener?.invoke(0L)
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -317,6 +321,8 @@ class SleepTimerService : Service() {
         const val EXTRA_DELTA_SECONDS = "extra_delta_seconds"
 
         var remainingSeconds: Long = 0L
+            private set
+        var totalDurationSeconds: Long = 0L
             private set
         var isRunning: Boolean = false
             private set

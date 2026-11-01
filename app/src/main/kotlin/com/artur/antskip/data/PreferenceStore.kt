@@ -76,27 +76,14 @@ class PreferenceStore(context: Context) {
         preferences.edit().putInt(KEY_SLEEP_TIMER_DURATION_MINUTES, minutes.coerceAtLeast(1)).apply()
     }
 
-    fun diagnosticLogs(): String =
-        try {
-            preferences.getString(KEY_DIAGNOSTIC_LOGS, "").orEmpty()
-        } catch (_: Exception) {
-            ""
-        }
+    fun diagnosticLogs(): String = DiagnosticLogger.getLogs()
 
     fun appendDiagnosticLog(message: String) {
-        try {
-            val line = "${LocalDateTime.now().format(LOG_TIME_FORMATTER)}  $message"
-            val retainedLines = (diagnosticLogs().lineSequence() + line)
-                .filter { it.isNotBlank() }
-                .toList()
-                .takeLast(MAX_DIAGNOSTIC_LOG_LINES)
-            preferences.edit().putString(KEY_DIAGNOSTIC_LOGS, retainedLines.joinToString("\n")).apply()
-        } catch (_: Exception) {
-        }
+        DiagnosticLogger.log(message)
     }
 
     fun clearDiagnosticLogs() {
-        preferences.edit().remove(KEY_DIAGNOSTIC_LOGS).apply()
+        DiagnosticLogger.clear()
     }
 
     private companion object {

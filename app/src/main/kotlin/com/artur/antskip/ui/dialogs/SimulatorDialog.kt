@@ -24,24 +24,49 @@ class SimulatorDialog(
     private val preferences: PreferenceStore,
 ) {
     fun show() {
+        val dialog = AlertDialog.Builder(context).create()
         val matcher = SkipMatcher(preferences)
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 18), AntTheme.dp(context, 16), AntTheme.dp(context, 18), AntTheme.dp(context, 16))
-            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, context)
+            setPadding(AntTheme.dp(context, 20), AntTheme.dp(context, 18), AntTheme.dp(context, 20), AntTheme.dp(context, 18))
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 16f, AntTheme.CARD_BORDER, 1, context)
         }
 
-        val title = TextView(context).apply {
-            text = "Testar reconhecimento"
-            setTextColor(AntTheme.TEXT_PRIMARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
-            typeface = Typeface.DEFAULT_BOLD
+        // Top Header with Title and Close 'X'
+        val headerRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            val hParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            hParams.bottomMargin = AntTheme.dp(context, 4)
+            layoutParams = hParams
+
+            val title = TextView(context).apply {
+                text = "Testar reconhecimento"
+                setTextColor(AntTheme.TEXT_PRIMARY)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+                typeface = Typeface.DEFAULT_BOLD
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+
+            val closeX = TextView(context).apply {
+                text = "✕"
+                setTextColor(AntTheme.TEXT_MUTED)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(AntTheme.dp(context, 8), AntTheme.dp(context, 4), AntTheme.dp(context, 8), AntTheme.dp(context, 4))
+                AntTheme.addPressFeedback(this)
+                setOnClickListener { dialog.dismiss() }
+            }
+
+            addView(title)
+            addView(closeX)
         }
+
         val subtitle = TextView(context).apply {
             text = "Verifique se o AntSKIP identifica a frase de um botão de streaming."
             setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-            setPadding(0, AntTheme.dp(context, 4), 0, AntTheme.dp(context, 12))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(0, 0, 0, AntTheme.dp(context, 12))
         }
 
         val providerLabel = TextView(context).apply {
@@ -90,13 +115,19 @@ class SimulatorDialog(
 
         val testButton = Button(context).apply {
             text = "Verificar"
-            setTextColor(AntTheme.TEXT_INVERSE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextColor(AntTheme.TEXT_PRIMARY)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
             typeface = Typeface.DEFAULT_BOLD
-            background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 8f, context = context)
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 40))
+            background = AntTheme.rippleGradientButton(
+                startColor = AntTheme.ACCENT_GRADIENT_START,
+                endColor = AntTheme.ACCENT_GRADIENT_END,
+                radiusDp = 8f,
+                context = context,
+            )
+            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 42))
             params.topMargin = AntTheme.dp(context, 12)
             layoutParams = params
+            AntTheme.addPressFeedback(this)
 
             setOnClickListener {
                 val entered = input.text.toString().trim()
@@ -128,7 +159,7 @@ class SimulatorDialog(
             }
         }
 
-        container.addView(title)
+        container.addView(headerRow)
         container.addView(subtitle)
         container.addView(providerLabel)
         container.addView(providerSpinner)
@@ -139,9 +170,10 @@ class SimulatorDialog(
 
         val scroll = ScrollView(context).apply { addView(container) }
 
-        AlertDialog.Builder(context)
-            .setView(scroll)
-            .setPositiveButton("Fechar", null)
-            .show()
+        dialog.setView(scroll)
+        dialog.show()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setDimAmount(0.65f)
     }
 }

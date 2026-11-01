@@ -23,6 +23,28 @@ class ActionToggleCard(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(AntTheme.dp(context, 16), AntTheme.dp(context, 12), AntTheme.dp(context, 16), AntTheme.dp(context, 12))
+            background = AntTheme.rippleButton(AntTheme.CARD_SURFACE, radiusDp = 0f, context = context)
+
+            // Visual Action Badge
+            val badgeLabel = when (action) {
+                SkipAction.INTRO -> "INTRO"
+                SkipAction.RECAP -> "RECAP"
+                SkipAction.CREDITS -> "FIM"
+                SkipAction.NEXT_EPISODE -> "PROX"
+            }
+            val actionBadge = AntTheme.createBadge(
+                context = context,
+                text = badgeLabel,
+                bgColor = AntTheme.CARD_SURFACE_HOVER,
+                textColor = AntTheme.ACCENT_PRIMARY,
+                sizeDp = 38,
+                radiusDp = 10f,
+                textSizeSp = 10f,
+            ).apply {
+                val bParams = LinearLayout.LayoutParams(AntTheme.dp(context, 38), AntTheme.dp(context, 38))
+                bParams.marginEnd = AntTheme.dp(context, 14)
+                layoutParams = bParams
+            }
 
             val textColumn = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
@@ -38,7 +60,7 @@ class ActionToggleCard(
                 val desc = TextView(context).apply {
                     text = action.description
                     setTextColor(AntTheme.TEXT_MUTED)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
                 }
 
                 addView(title)
@@ -53,7 +75,13 @@ class ActionToggleCard(
                 }
             }
 
+            addView(actionBadge)
             addView(textColumn)
             addView(sw)
+
+            AntTheme.addPressFeedback(this)
+            setOnClickListener {
+                sw.toggle()
+            }
         }
 }

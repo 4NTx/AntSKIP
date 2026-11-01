@@ -136,6 +136,10 @@ class SkipMatcher(
         if (PRIME_VIDEO_EXCLUDE_PHRASES.any { text.contains(it) }) {
             return null
         }
+        // Prime Video next episode bottom card: "Próximo: Nome do Episódio", "Next: Episode Name", "Up next: ...", "Siguiente: ..."
+        if (text.startsWith("proximo ") || text.startsWith("proximo:") || text.startsWith("next ") || text.startsWith("next:") || text.startsWith("up next") || text.startsWith("siguiente ")) {
+            return SkipAction.NEXT_EPISODE
+        }
         return PRIME_VIDEO_EXACT_PHRASES.entries.firstOrNull { (_, phrases) ->
             text in phrases
         }?.key ?: PRIME_VIDEO_PHRASES.entries.firstOrNull { (_, phrases) ->
@@ -459,15 +463,24 @@ class SkipMatcher(
                 "skip end credits",
             ),
             SkipAction.NEXT_EPISODE to setOf(
+                "proximo:",
+                "proximo :",
+                "proximo ep",
                 "proximo episodio",
                 "proximo episodio em",
+                "proximo capitulo",
+                "proxima parte",
                 "reproduzir proximo",
                 "assistir proximo",
+                "next:",
+                "next :",
                 "next episode",
                 "next episode in",
                 "play next episode",
                 "watch next episode",
                 "next up",
+                "up next",
+                "up next:",
             ),
         )
     }
