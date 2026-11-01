@@ -16,7 +16,11 @@ android {
     }
 
     signingConfigs {
-        debug {
+        release {
+            storeFile file("release.keystore")
+            storePassword "antskippassword"
+            keyAlias "antskip"
+            keyPassword "antskippassword"
             v1SigningEnabled true
             v2SigningEnabled true
             enableV3Signing true
@@ -25,11 +29,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled false
         }
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 
