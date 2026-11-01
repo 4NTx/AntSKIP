@@ -25,8 +25,53 @@ import com.artur.antskip.ui.MainActivity
 
 class SleepTimerService : Service() {
     private val preferences by lazy { PreferenceStore(this) }
+    private val notificationManager by lazy { getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
     private var countDownTimer: CountDownTimer? = null
     private var wakeLock: PowerManager.WakeLock? = null
+
+    private val openAppIntent by lazy {
+        PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private val addIntent by lazy {
+        PendingIntent.getService(
+            this,
+            1,
+            Intent(this, SleepTimerService::class.java).apply {
+                action = ACTION_ADD_TIME
+                putExtra(EXTRA_DELTA_SECONDS, 5 * 60L)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private val subIntent by lazy {
+        PendingIntent.getService(
+            this,
+            2,
+            Intent(this, SleepTimerService::class.java).apply {
+                action = ACTION_SUBTRACT_TIME
+                putExtra(EXTRA_DELTA_SECONDS, 5 * 60L)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private val stopIntent by lazy {
+        PendingIntent.getService(
+            this,
+            3,
+            Intent(this, SleepTimerService::class.java).apply {
+                action = ACTION_STOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -121,6 +166,7 @@ class SleepTimerService : Service() {
             override fun onTick(millisUntilFinished: Long) {
                 remainingSeconds = (millisUntilFinished / 1000L) + 1
                 onTickListener?.invoke(remainingSeconds)
+                updateNotification(remainingSeconds)
             }
 
             override fun onFinish() {
@@ -216,45 +262,16 @@ class SleepTimerService : Service() {
         }
     }
 
+    private fun updateNotification(seconds: Long) {
+        try {
+            notificationManager.notify(NOTIFICATION_ID, buildNotification(seconds))
+        } catch (_: Exception) {
+        }
+    }
+
     private fun buildNotification(seconds: Long): Notification {
         val formattedTime = formatSeconds(seconds)
-        val contentText = "Pausando mídia e desligando em $formattedTime"
-
-        val openAppIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val addIntent = PendingIntent.getService(
-            this,
-            1,
-            Intent(this, SleepTimerService::class.java).apply {
-                action = ACTION_ADD_TIME
-                putExtra(EXTRA_DELTA_SECONDS, 5 * 60L)
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val subIntent = PendingIntent.getService(
-            this,
-            2,
-            Intent(this, SleepTimerService::class.java).apply {
-                action = ACTION_SUBTRACT_TIME
-                putExtra(EXTRA_DELTA_SECONDS, 5 * 60L)
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-
-        val stopIntent = PendingIntent.getService(
-            this,
-            3,
-            Intent(this, SleepTimerService::class.java).apply {
-                action = ACTION_STOP
-            },
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+        val contentText = "Pausando mídia e bloqueando em $formattedTime"
 
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(this, CHANNEL_ID)
@@ -263,43 +280,34 @@ class SleepTimerService : Service() {
             Notification.Builder(this)
         }
 
-        val stopTimeMs = System.currentTimeMillis() + (seconds * 1000L)
-
         builder
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle(getString(R.string.sleep_timer_notification_title))
+            .setContentTitle("Temporizador de sono • $formattedTime")
             .setContentText(contentText)
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setWhen(stopTimeMs)
-            .setShowWhen(true)
-            .setUsesChronometer(true)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            builder.setChronometerCountDown(true)
-        }
 
         // Notification action buttons
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {
             builder.addAction(
                 Notification.Action.Builder(
                     null,
-                    getString(R.string.action_add_five_min),
+                    "+5 min",
                     addIntent,
                 ).build(),
             )
             builder.addAction(
                 Notification.Action.Builder(
                     null,
-                    getString(R.string.action_sub_five_min),
+                    "−5 min",
                     subIntent,
                 ).build(),
             )
             builder.addAction(
                 Notification.Action.Builder(
                     null,
-                    getString(R.string.action_stop_timer),
+                    "Cancelar",
                     stopIntent,
                 ).build(),
             )
