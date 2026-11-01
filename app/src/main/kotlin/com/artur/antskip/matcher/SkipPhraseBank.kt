@@ -28,6 +28,9 @@ object SkipPhraseBank {
             "pular a introdução",
             "pular tema",
             "pular tema de abertura",
+            "pular anuncio",
+            "pular anúncios",
+            "pular publicidade",
             // English
             "skip intro",
             "skip opening",
@@ -41,6 +44,9 @@ object SkipPhraseBank {
             "skip opening button",
             "skip-intro",
             "skip-opening",
+            "skip ad",
+            "skip ads",
+            "skip advertisement",
             // Spanish
             "saltar intro",
             "saltar introduccion",

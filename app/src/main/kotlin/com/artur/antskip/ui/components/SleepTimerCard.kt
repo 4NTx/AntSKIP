@@ -446,9 +446,85 @@ class SleepTimerCard(
             setOnClickListener { sw.toggle() }
         }
 
+        // Toggle: Redução gradual de volume (Fade-out)
+        val fadeRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, AntTheme.dp(context, 6), 0, AntTheme.dp(context, 6))
+
+            val labelLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+
+                val label = TextView(context).apply {
+                    text = "Redução gradual de volume (Fade-out)"
+                    setTextColor(AntTheme.TEXT_PRIMARY)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                }
+                val sub = TextView(context).apply {
+                    text = "Abaixa nos últimos 45s para não assustar"
+                    setTextColor(AntTheme.TEXT_MUTED)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                }
+                addView(label)
+                addView(sub)
+            }
+
+            val sw = Switch(context).apply {
+                isChecked = preferences.isSleepTimerAudioFadeOutEnabled
+                setOnCheckedChangeListener { _, checked ->
+                    preferences.setSleepTimerAudioFadeOutEnabled(checked)
+                }
+            }
+
+            addView(labelLayout)
+            addView(sw)
+            setOnClickListener { sw.toggle() }
+        }
+
+        // Toggle: Balançar celular para estender
+        val shakeRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, AntTheme.dp(context, 6), 0, AntTheme.dp(context, 6))
+
+            val labelLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+
+                val label = TextView(context).apply {
+                    text = "Balançar para estender (+10 min)"
+                    setTextColor(AntTheme.TEXT_PRIMARY)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                }
+                val sub = TextView(context).apply {
+                    text = "Chacoalhe o celular se ainda estiver acordado"
+                    setTextColor(AntTheme.TEXT_MUTED)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                }
+                addView(label)
+                addView(sub)
+            }
+
+            val sw = Switch(context).apply {
+                isChecked = preferences.isSleepTimerShakeToExtendEnabled
+                setOnCheckedChangeListener { _, checked ->
+                    preferences.setSleepTimerShakeToExtendEnabled(checked)
+                }
+            }
+
+            addView(labelLayout)
+            addView(sw)
+            setOnClickListener { sw.toggle() }
+        }
+
         optionsLayout.addView(pauseRow)
         optionsLayout.addView(AntTheme.divider(context))
         optionsLayout.addView(screenRow)
+        optionsLayout.addView(AntTheme.divider(context))
+        optionsLayout.addView(fadeRow)
+        optionsLayout.addView(AntTheme.divider(context))
+        optionsLayout.addView(shakeRow)
 
         val note = TextView(context).apply {
             text = "Alarmes e despertadores nunca são silenciados ou pausados."

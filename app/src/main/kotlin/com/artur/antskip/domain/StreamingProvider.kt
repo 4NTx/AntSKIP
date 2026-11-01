@@ -38,6 +38,34 @@ enum class StreamingProvider(
             "com.amazon.avod",
             "com.amazon.amazonvideo.livingroom",
         ),
+    ),
+    MAX(
+        preferenceKey = "provider_max_enabled",
+        label = "Max",
+        packageName = "com.wbd.stream",
+        enabledByDefault = true,
+        brandColor = 0xFF002BE7.toInt(),
+        packageAliases = setOf(
+            "com.hbo.hbonow",
+            "com.hbomax",
+        ),
+    ),
+    DISNEY_PLUS(
+        preferenceKey = "provider_disney_plus_enabled",
+        label = "Disney+",
+        packageName = "com.disney.disneyplus",
+        enabledByDefault = true,
+        brandColor = 0xFF113CCF.toInt(),
+    ),
+    YOUTUBE(
+        preferenceKey = "provider_youtube_enabled",
+        label = "YouTube",
+        packageName = "com.google.android.youtube",
+        enabledByDefault = true,
+        brandColor = 0xFFFF0000.toInt(),
+        packageAliases = setOf(
+            "com.google.android.youtube.tv",
+        ),
     );
 
     val allPackages: Set<String>

@@ -24,6 +24,8 @@ import com.artur.antskip.accessibility.AntSkipAccessibilityService
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
+import com.artur.antskip.tile.AutoSkipTileService
+import com.artur.antskip.tile.SleepTimerTileService
 import com.artur.antskip.ui.components.ActionToggleCard
 import com.artur.antskip.ui.components.HeroStatusCard
 import com.artur.antskip.ui.components.ProviderCard
@@ -127,6 +129,10 @@ class MainActivity : Activity() {
                 setOnClickListener {
                     if (!isAccessibilityServiceEnabled()) {
                         openAccessibilitySettings()
+                    } else {
+                        val newState = !preferences.isAutomationEnabled
+                        preferences.setAutomationEnabled(newState)
+                        updateStatus()
                     }
                 }
             }
@@ -264,15 +270,22 @@ class MainActivity : Activity() {
             headerStatusBadge.scaleY = 1f
             headerStatusBadge.alpha = 1f
 
-            if (isServiceEnabled) {
-                headerStatusBadge.text = "Ativo"
-                headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)
-                headerStatusBadge.background = AntTheme.rounded(AntTheme.SUCCESS_BG, 8f, AntTheme.SUCCESS_BORDER, 1, this)
-            } else {
+            if (!isServiceEnabled) {
                 headerStatusBadge.text = "Desativado"
                 headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
                 headerStatusBadge.background = AntTheme.rounded(AntTheme.WARNING_BG, 8f, AntTheme.WARNING_BORDER, 1, this)
+            } else if (!isAutomationEnabled) {
+                headerStatusBadge.text = "Pausado"
+                headerStatusBadge.setTextColor(AntTheme.TEXT_MUTED)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.CARD_SURFACE_HOVER, 8f, AntTheme.CARD_BORDER, 1, this)
+            } else {
+                headerStatusBadge.text = "Ativo"
+                headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.SUCCESS_BG, 8f, AntTheme.SUCCESS_BORDER, 1, this)
             }
+
+            AutoSkipTileService.requestUpdate(this)
+            SleepTimerTileService.requestUpdate(this)
         } catch (_: Exception) {
         }
     }

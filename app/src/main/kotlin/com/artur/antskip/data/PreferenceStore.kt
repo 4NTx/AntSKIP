@@ -65,6 +65,28 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(KEY_SLEEP_TIMER_TURN_OFF_SCREEN, enabled).apply()
     }
 
+    val isSleepTimerAudioFadeOutEnabled: Boolean
+        get() = try {
+            preferences.getBoolean(KEY_SLEEP_TIMER_AUDIO_FADE_OUT, true)
+        } catch (_: Exception) {
+            true
+        }
+
+    fun setSleepTimerAudioFadeOutEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_SLEEP_TIMER_AUDIO_FADE_OUT, enabled).apply()
+    }
+
+    val isSleepTimerShakeToExtendEnabled: Boolean
+        get() = try {
+            preferences.getBoolean(KEY_SLEEP_TIMER_SHAKE_TO_EXTEND, true)
+        } catch (_: Exception) {
+            true
+        }
+
+    fun setSleepTimerShakeToExtendEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_SLEEP_TIMER_SHAKE_TO_EXTEND, enabled).apply()
+    }
+
     val sleepTimerDurationMinutes: Int
         get() = try {
             preferences.getInt(KEY_SLEEP_TIMER_DURATION_MINUTES, 15)
@@ -92,6 +114,8 @@ class PreferenceStore(context: Context) {
         const val KEY_DIAGNOSTIC_LOGS = "diagnostic_logs"
         const val KEY_SLEEP_TIMER_PAUSE_MEDIA = "sleep_timer_pause_media"
         const val KEY_SLEEP_TIMER_TURN_OFF_SCREEN = "sleep_timer_turn_off_screen"
+        const val KEY_SLEEP_TIMER_AUDIO_FADE_OUT = "sleep_timer_audio_fade_out"
+        const val KEY_SLEEP_TIMER_SHAKE_TO_EXTEND = "sleep_timer_shake_to_extend"
         const val KEY_SLEEP_TIMER_DURATION_MINUTES = "sleep_timer_duration_minutes"
         const val MAX_DIAGNOSTIC_LOG_LINES = 120
 

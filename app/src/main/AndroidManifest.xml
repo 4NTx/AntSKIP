@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <queries>
         <package android:name="com.netflix.mediaclient" />
@@ -14,6 +15,12 @@
         <package android:name="com.amazon.avod.thirdpartyclient" />
         <package android:name="com.amazon.avod" />
         <package android:name="com.amazon.amazonvideo.livingroom" />
+        <package android:name="com.wbd.stream" />
+        <package android:name="com.hbo.hbonow" />
+        <package android:name="com.hbomax" />
+        <package android:name="com.disney.disneyplus" />
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.google.android.youtube.tv" />
     </queries>
 
     <application
@@ -51,6 +58,28 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Temporizador de sono para pausar midia e desligar tela" />
+        </service>
+
+        <service
+            android:name=".tile.SleepTimerTileService"
+            android:icon="@drawable/ic_qs_sleep"
+            android:label="Temporizador de Sono"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".tile.AutoSkipTileService"
+            android:icon="@drawable/ic_qs_skip"
+            android:label="AntSKIP"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
         </service>
 
     </application>

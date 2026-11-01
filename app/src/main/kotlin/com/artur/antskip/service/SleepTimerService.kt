@@ -8,6 +8,10 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -17,17 +21,31 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.KeyEvent
 import com.artur.antskip.R
 import com.artur.antskip.accessibility.AntSkipAccessibilityService
 import com.artur.antskip.data.PreferenceStore
+import com.artur.antskip.tile.SleepTimerTileService
 import com.artur.antskip.ui.MainActivity
+import kotlin.math.abs
+import kotlin.math.sqrt
 
 class SleepTimerService : Service() {
     private val preferences by lazy { PreferenceStore(this) }
     private val notificationManager by lazy { getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager }
     private var countDownTimer: CountDownTimer? = null
     private var wakeLock: PowerManager.WakeLock? = null
+
+    // Audio Fade-out state
+    private var originalMusicVolume = -1
+
+    // Shake to Extend state
+    private var sensorManager: SensorManager? = null
+    private var lastShakeTime = 0L
 
     private val openAppIntent by lazy {
         PendingIntent.getActivity(
@@ -83,6 +101,9 @@ class SleepTimerService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         releaseWakeLock()
+        unregisterShakeDetector()
+        restoreAudioVolume()
+        SleepTimerTileService.requestUpdate(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -131,6 +152,105 @@ class SleepTimerService : Service() {
         wakeLock = null
     }
 
+    private val shakeListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent?) {
+            if (event?.sensor?.type != Sensor.TYPE_ACCELEROMETER) return
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val gX = x / SensorManager.GRAVITY_EARTH
+            val gY = y / SensorManager.GRAVITY_EARTH
+            val gZ = z / SensorManager.GRAVITY_EARTH
+            val gForce = sqrt((gX * gX + gY * gY + gZ * gZ).toDouble()).toFloat()
+            if (gForce > 2.2f) {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastShakeTime > 4000L) {
+                    lastShakeTime = now
+                    Handler(Looper.getMainLooper()).post {
+                        if (isRunning) {
+                            adjustTimer(10 * 60L)
+                            vibrateFeedback()
+                        }
+                    }
+                }
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    }
+
+    private fun registerShakeDetector() {
+        if (!preferences.isSleepTimerShakeToExtendEnabled) return
+        try {
+            if (sensorManager == null) {
+                sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+            }
+            val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            if (accelerometer != null) {
+                sensorManager?.registerListener(
+                    shakeListener,
+                    accelerometer,
+                    SensorManager.SENSOR_DELAY_UI,
+                )
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun unregisterShakeDetector() {
+        try {
+            sensorManager?.unregisterListener(shakeListener)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun vibrateFeedback() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vibratorManager?.defaultVibrator?.vibrate(
+                    VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator?.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator?.vibrate(200)
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun applyAudioFadeOut(secondsLeft: Long) {
+        try {
+            val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+            if (originalMusicVolume == -1) {
+                originalMusicVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            }
+            if (originalMusicVolume > 0) {
+                val factor = (secondsLeft.toFloat() / 45f).coerceIn(0f, 1f)
+                val newVolume = (originalMusicVolume * factor).toInt().coerceIn(0, originalMusicVolume)
+                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun restoreAudioVolume() {
+        try {
+            if (originalMusicVolume != -1) {
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, originalMusicVolume, 0)
+                originalMusicVolume = -1
+            }
+        } catch (_: Exception) {
+        }
+    }
+
     private fun startAsForeground(seconds: Long) {
         val notification = buildNotification(seconds)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -158,24 +278,38 @@ class SleepTimerService : Service() {
         }
         isRunning = true
 
+        if (remainingSeconds > 45L) {
+            restoreAudioVolume()
+        }
+
         acquireWakeLock(remainingSeconds)
+        registerShakeDetector()
         startAsForeground(remainingSeconds)
         onTickListener?.invoke(remainingSeconds)
+        SleepTimerTileService.requestUpdate(this)
 
         countDownTimer = object : CountDownTimer(remainingSeconds * 1000L, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
                 remainingSeconds = (millisUntilFinished / 1000L) + 1
+                if (preferences.isSleepTimerAudioFadeOutEnabled && remainingSeconds in 1..45) {
+                    applyAudioFadeOut(remainingSeconds)
+                }
                 onTickListener?.invoke(remainingSeconds)
                 updateNotification(remainingSeconds)
+                if (remainingSeconds % 30 == 0L) {
+                    SleepTimerTileService.requestUpdate(this@SleepTimerService)
+                }
             }
 
             override fun onFinish() {
                 remainingSeconds = 0L
                 isRunning = false
                 releaseWakeLock()
+                unregisterShakeDetector()
                 onTickListener?.invoke(0L)
                 onFinishListener?.invoke()
                 executeTimerFinishedActions()
+                restoreAudioVolume()
                 stopTimer()
             }
         }.start()
@@ -183,6 +317,9 @@ class SleepTimerService : Service() {
 
     private fun adjustTimer(deltaSeconds: Long) {
         val newDuration = maxOf(10L, remainingSeconds + deltaSeconds)
+        if (newDuration > 45L) {
+            restoreAudioVolume()
+        }
         startTimer(newDuration)
     }
 
@@ -193,8 +330,11 @@ class SleepTimerService : Service() {
         remainingSeconds = 0L
         totalDurationSeconds = 0L
         releaseWakeLock()
+        unregisterShakeDetector()
+        restoreAudioVolume()
         onTickListener?.invoke(0L)
         stopForeground(STOP_FOREGROUND_REMOVE)
+        SleepTimerTileService.requestUpdate(this)
         stopSelf()
     }
 

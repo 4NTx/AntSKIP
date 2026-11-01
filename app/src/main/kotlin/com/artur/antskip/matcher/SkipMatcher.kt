@@ -80,12 +80,22 @@ class SkipMatcher(
             StreamingProvider.CRUNCHYROLL -> matchCrunchyrollAction(text)
             StreamingProvider.NETFLIX -> matchNetflixAction(text, rootContextText)
             StreamingProvider.PRIME_VIDEO -> matchPrimeVideoAction(text)
+            StreamingProvider.MAX -> phraseBank.match(text)
+            StreamingProvider.DISNEY_PLUS -> phraseBank.match(text)
+            StreamingProvider.YOUTUBE -> matchYouTubeAction(text)
         }
     }
 
+    private fun matchYouTubeAction(text: String): SkipAction? =
+        when {
+            text == "pular" || text == "skip" -> SkipAction.INTRO
+            text.contains("pular anuncio") || text.contains("pular anúncio") || text.contains("skip ad") -> SkipAction.INTRO
+            else -> phraseBank.match(text)
+        }
+
     private fun matchByKnownViewId(viewId: String): SkipAction? =
         when {
-            viewId.contains("skip_intro") || viewId.contains("skip_opening") || viewId.contains("pular_abertura") -> SkipAction.INTRO
+            viewId.contains("skip_intro") || viewId.contains("skip_opening") || viewId.contains("pular_abertura") || viewId.contains("skip_ad") -> SkipAction.INTRO
             viewId.contains("skip_recap") || viewId.contains("pular_resumo") || viewId.contains("pular_recap") -> SkipAction.RECAP
             viewId.contains("skip_credits") || viewId.contains("pular_creditos") || viewId.contains("skip_ending") -> SkipAction.CREDITS
             viewId.contains("play_next_episode") || viewId.contains("proximo_episodio_btn") -> SkipAction.NEXT_EPISODE

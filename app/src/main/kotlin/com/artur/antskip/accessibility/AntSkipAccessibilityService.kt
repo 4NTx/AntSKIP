@@ -17,6 +17,7 @@ import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
 import com.artur.antskip.matcher.SkipMatcher
+import com.artur.antskip.tile.AutoSkipTileService
 
 class AntSkipAccessibilityService : AccessibilityService() {
     private val preferences by lazy { PreferenceStore(this) }
@@ -35,6 +36,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
             AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
         serviceInfo = info
         preferences.appendDiagnosticLog("Serviço de acessibilidade ativo e pronto")
+        AutoSkipTileService.requestUpdate(this)
     }
 
     override fun onDestroy() {
@@ -43,6 +45,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
             instance = null
         }
         preferences.appendDiagnosticLog("Serviço de acessibilidade desativado")
+        AutoSkipTileService.requestUpdate(this)
     }
 
     fun lockScreen(): Boolean =

@@ -26,11 +26,14 @@ class ProviderCard(
             setPadding(AntTheme.dp(context, 16), AntTheme.dp(context, 12), AntTheme.dp(context, 16), AntTheme.dp(context, 12))
             background = AntTheme.rippleButton(AntTheme.CARD_SURFACE, radiusDp = 0f, context = context)
 
-            // Brand Badge Icon (e.g. Red 'N', Orange 'CR', Blue 'P')
+            // Brand Badge Icon (e.g. Red 'N', Orange 'CR', Blue 'P', Deep Blue 'MAX', Indigo 'D+', Red 'YT')
             val badgeSymbol = when (provider) {
                 StreamingProvider.NETFLIX -> "N"
                 StreamingProvider.CRUNCHYROLL -> "CR"
                 StreamingProvider.PRIME_VIDEO -> "P"
+                StreamingProvider.MAX -> "MAX"
+                StreamingProvider.DISNEY_PLUS -> "D+"
+                StreamingProvider.YOUTUBE -> "YT"
             }
             val brandBadge = AntTheme.createBadge(
                 context = context,
@@ -38,7 +41,11 @@ class ProviderCard(
                 bgColor = provider.brandColor,
                 sizeDp = 38,
                 radiusDp = 10f,
-                textSizeSp = if (badgeSymbol.length > 1) 12f else 15f,
+                textSizeSp = when {
+                    badgeSymbol.length >= 3 -> 10.5f
+                    badgeSymbol.length == 2 -> 12f
+                    else -> 15f
+                },
             ).apply {
                 val bParams = LinearLayout.LayoutParams(AntTheme.dp(context, 38), AntTheme.dp(context, 38))
                 bParams.marginEnd = AntTheme.dp(context, 14)
