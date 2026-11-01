@@ -6,5 +6,4 @@
     android:canRetrieveWindowContent="true"
     android:canPerformGestures="true"
     android:description="@string/accessibility_service_description"
-    android:notificationTimeout="120"
-    android:packageNames="com.crunchyroll.crunchyroid,com.crunchyroll.crunchyrollapp,com.netflix.mediaclient,com.netflix.ninja,com.amazon.avod.thirdpartyclient,com.amazon.avod,com.amazon.amazonvideo.livingroom,com.disney.disneyplus,com.disney.disneyplus.tv,com.wbd.stream,com.hbo.hbonow,com.hbo.go,com.cbs.app,com.paramountplus,com.cbs.ott" />
+    android:notificationTimeout="100" />

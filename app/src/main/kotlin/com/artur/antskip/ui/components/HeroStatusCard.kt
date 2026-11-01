@@ -12,15 +12,23 @@ import com.artur.antskip.ui.theme.AntTheme
 
 class HeroStatusCard(
     private val context: Context,
-    private val isServiceEnabled: Boolean,
-    private val isAutomationEnabled: Boolean,
     private val version: String,
-    private val activeAppsCount: Int,
-    private val totalAppsCount: Int,
     private val onPrimaryAction: () -> Unit,
     private val onSecondaryAction: () -> Unit,
 ) {
-    fun createView(): LinearLayout =
+    private lateinit var dotView: TextView
+    private lateinit var statusBadgeView: TextView
+    private lateinit var descView: TextView
+    private lateinit var metricTextView: TextView
+    private lateinit var primaryBtn: Button
+    private lateinit var secondaryBtn: Button
+
+    fun createView(
+        isServiceEnabled: Boolean,
+        isAutomationEnabled: Boolean,
+        activeAppsCount: Int,
+        totalAppsCount: Int,
+    ): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(AntTheme.dp(context, 20), AntTheme.dp(context, 20), AntTheme.dp(context, 20), AntTheme.dp(context, 20))
@@ -35,13 +43,7 @@ class HeroStatusCard(
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
 
-                val dot = TextView(context).apply {
-                    val dotColor = when {
-                        !isServiceEnabled -> AntTheme.DANGER_TEXT
-                        !isAutomationEnabled -> AntTheme.WARNING_TEXT
-                        else -> AntTheme.SUCCESS_TEXT
-                    }
-                    background = AntTheme.rounded(dotColor, 6f, null, 0, context)
+                dotView = TextView(context).apply {
                     val dotParams = LinearLayout.LayoutParams(AntTheme.dp(context, 8), AntTheme.dp(context, 8))
                     dotParams.marginEnd = AntTheme.dp(context, 8)
                     layoutParams = dotParams
@@ -70,68 +72,47 @@ class HeroStatusCard(
                     layoutParams = LinearLayout.LayoutParams(0, 0, 1f)
                 }
 
-                val statusBadge = AntTheme.badge(
-                    context,
-                    if (!isServiceEnabled) "Acessibilidade desligada"
-                    else if (!isAutomationEnabled) "Pausado"
-                    else "Automacao ativa",
-                    if (!isServiceEnabled) AntTheme.DANGER_TEXT
-                    else if (!isAutomationEnabled) AntTheme.WARNING_TEXT
-                    else AntTheme.SUCCESS_TEXT,
-                    if (!isServiceEnabled) AntTheme.DANGER_BG
-                    else if (!isAutomationEnabled) AntTheme.WARNING_BG
-                    else AntTheme.SUCCESS_BG,
-                    if (!isServiceEnabled) AntTheme.DANGER_BORDER
-                    else if (!isAutomationEnabled) AntTheme.WARNING_BORDER
-                    else AntTheme.SUCCESS_BORDER,
-                )
+                statusBadgeView = TextView(context).apply {
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    typeface = Typeface.DEFAULT_BOLD
+                    gravity = Gravity.CENTER
+                    setPadding(AntTheme.dp(context, 10), AntTheme.dp(context, 4), AntTheme.dp(context, 10), AntTheme.dp(context, 4))
+                }
 
-                addView(dot)
+                addView(dotView)
                 addView(title)
                 addView(versionBadge)
                 addView(spacer)
-                addView(statusBadge)
+                addView(statusBadgeView)
             }
 
-            // Description
-            val desc = TextView(context).apply {
-                text = if (!isServiceEnabled) {
-                    "Ative a acessibilidade para que o AntSKIP detecte e aperte automaticamente os botões de pular no streaming."
-                } else if (!isAutomationEnabled) {
-                    "A automação está pausada manualmente. Reative para voltar a pular aberturas e créditos."
-                } else {
-                    "Pula aberturas, resumos, créditos e avança episódios instantaneamente com resposta em ~120ms."
-                }
+            descView = TextView(context).apply {
                 setTextColor(AntTheme.TEXT_SECONDARY)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
                 setPadding(0, AntTheme.dp(context, 10), 0, AntTheme.dp(context, 14))
             }
 
-            // Metrics row
             val metricsRow = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 8), AntTheme.dp(context, 12), AntTheme.dp(context, 8))
                 background = AntTheme.rounded(AntTheme.BG_CANVAS, 10f, AntTheme.CARD_BORDER, 1, context)
 
-                val metricText = TextView(context).apply {
-                    text = "Streamings Monitorados: $activeAppsCount de $totalAppsCount ativos"
+                metricTextView = TextView(context).apply {
                     setTextColor(AntTheme.TEXT_SECONDARY)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                     typeface = Typeface.DEFAULT_BOLD
                 }
-                addView(metricText)
+                addView(metricTextView)
             }
 
-            // Action buttons
             val buttonsRow = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
-                val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                params.topMargin = AntTheme.dp(context, 14)
-                layoutParams = params
+                val bParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                bParams.topMargin = AntTheme.dp(context, 14)
+                layoutParams = bParams
 
-                val primaryBtn = Button(context).apply {
-                    text = if (!isServiceEnabled) "Ativar Acessibilidade" else "Simulador de Reconhecimento"
+                primaryBtn = Button(context).apply {
                     setTextColor(AntTheme.TEXT_INVERSE)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     typeface = Typeface.DEFAULT_BOLD
@@ -140,8 +121,7 @@ class HeroStatusCard(
                     setOnClickListener { onPrimaryAction() }
                 }
 
-                val secondaryBtn = Button(context).apply {
-                    text = if (!isServiceEnabled) "Permitir Configurações Restritas" else "Gerenciar Acessibilidade do Android"
+                secondaryBtn = Button(context).apply {
                     setTextColor(AntTheme.TEXT_PRIMARY)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                     typeface = Typeface.DEFAULT_BOLD
@@ -157,8 +137,58 @@ class HeroStatusCard(
             }
 
             addView(topRow)
-            addView(desc)
+            addView(descView)
             addView(metricsRow)
             addView(buttonsRow)
+
+            updateState(isServiceEnabled, isAutomationEnabled, activeAppsCount, totalAppsCount)
         }
+
+    fun updateState(
+        isServiceEnabled: Boolean,
+        isAutomationEnabled: Boolean,
+        activeAppsCount: Int,
+        totalAppsCount: Int,
+    ) {
+        val dotColor = when {
+            !isServiceEnabled -> AntTheme.DANGER_TEXT
+            !isAutomationEnabled -> AntTheme.WARNING_TEXT
+            else -> AntTheme.SUCCESS_TEXT
+        }
+        dotView.background = AntTheme.rounded(dotColor, 6f, null, 0, context)
+
+        statusBadgeView.text = when {
+            !isServiceEnabled -> "Acessibilidade desligada"
+            !isAutomationEnabled -> "Pausado"
+            else -> "Automação ativa"
+        }
+        val textColor = when {
+            !isServiceEnabled -> AntTheme.DANGER_TEXT
+            !isAutomationEnabled -> AntTheme.WARNING_TEXT
+            else -> AntTheme.SUCCESS_TEXT
+        }
+        val bgColor = when {
+            !isServiceEnabled -> AntTheme.DANGER_BG
+            !isAutomationEnabled -> AntTheme.WARNING_BG
+            else -> AntTheme.SUCCESS_BG
+        }
+        val borderColor = when {
+            !isServiceEnabled -> AntTheme.DANGER_BORDER
+            !isAutomationEnabled -> AntTheme.WARNING_BORDER
+            else -> AntTheme.SUCCESS_BORDER
+        }
+        statusBadgeView.setTextColor(textColor)
+        statusBadgeView.background = AntTheme.rounded(bgColor, 8f, borderColor, 1, context)
+
+        descView.text = when {
+            !isServiceEnabled -> "Ative a acessibilidade para que o AntSKIP detecte e aperte automaticamente os botões de pular no streaming."
+            !isAutomationEnabled -> "A automação está pausada manualmente. Reative para voltar a pular aberturas e créditos."
+            else -> "Pula aberturas, resumos, créditos e avança episódios instantaneamente com resposta em ~100ms."
+        }
+
+        metricTextView.text = "Streamings Monitorados: $activeAppsCount de $totalAppsCount ativos"
+
+        primaryBtn.text = if (!isServiceEnabled) "Ativar Acessibilidade" else "Simulador de Reconhecimento"
+        secondaryBtn.text = if (!isServiceEnabled) "Permitir Configurações Restritas" else "Gerenciar Acessibilidade do Android"
+    }
 }

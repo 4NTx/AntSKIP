@@ -5,6 +5,7 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
 import android.graphics.Rect
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -26,8 +27,8 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         val info = serviceInfo ?: AccessibilityServiceInfo()
-        info.packageNames = StreamingProvider.allSupportedPackages().toTypedArray()
         info.notificationTimeout = SERVICE_NOTIFICATION_TIMEOUT_MS
         info.flags = info.flags or
             AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
@@ -35,6 +36,20 @@ class AntSkipAccessibilityService : AccessibilityService() {
             AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
         serviceInfo = info
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (instance == this) {
+            instance = null
+        }
+    }
+
+    fun lockScreen(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
+        } else {
+            performGlobalAction(GLOBAL_ACTION_HOME)
+        }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val eventPackage = event?.packageName?.toString().orEmpty()
@@ -132,7 +147,6 @@ class AntSkipAccessibilityService : AccessibilityService() {
             }
         }
 
-        // Tap exact center of button bounds
         gestureBuilder.addStroke(
             GestureDescription.StrokeDescription(
                 tapPath(bounds.exactCenterX(), bounds.exactCenterY()),
@@ -147,12 +161,15 @@ class AntSkipAccessibilityService : AccessibilityService() {
     private fun tapPath(x: Float, y: Float): Path =
         Path().apply { moveTo(x, y) }
 
-    private companion object {
-        const val SERVICE_NOTIFICATION_TIMEOUT_MS = 120L
-        const val CLICK_COOLDOWN_MS = 2_000L
-        const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
-        const val GESTURE_TAP_DURATION_MS = 60L
-        const val GESTURE_SECOND_TAP_DELAY_MS = 120L
-        const val NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX = 140f
+    companion object {
+        var instance: AntSkipAccessibilityService? = null
+            private set
+
+        private const val SERVICE_NOTIFICATION_TIMEOUT_MS = 100L
+        private const val CLICK_COOLDOWN_MS = 2_000L
+        private const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
+        private const val GESTURE_TAP_DURATION_MS = 60L
+        private const val GESTURE_SECOND_TAP_DELAY_MS = 120L
+        private const val NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX = 140f
     }
 }

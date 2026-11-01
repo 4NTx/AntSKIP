@@ -4,11 +4,11 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
@@ -24,6 +24,7 @@ import com.artur.antskip.ui.components.ActionToggleCard
 import com.artur.antskip.ui.components.HeroStatusCard
 import com.artur.antskip.ui.components.ProviderCard
 import com.artur.antskip.ui.components.QuickToolsSection
+import com.artur.antskip.ui.components.SleepTimerCard
 import com.artur.antskip.ui.dialogs.CustomPhrasesDialog
 import com.artur.antskip.ui.dialogs.DiagnosticsDialog
 import com.artur.antskip.ui.dialogs.ProviderConfigDialog
@@ -37,23 +38,36 @@ class MainActivity : Activity() {
     private val updater by lazy { GitHubUpdateChecker(this) }
     private var updateState: UpdateState = UpdateState.NotChecked
 
+    private lateinit var heroCard: HeroStatusCard
+    private val providerCards = mutableListOf<ProviderCard>()
+    private var isViewBuilt = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyModernSystemBars()
+        requestNotificationPermissionIfNeeded()
         render()
         checkUpdatesSilently()
     }
 
     override fun onResume() {
         super.onResume()
-        render()
+        if (isViewBuilt) {
+            updateHeroStatus()
+            providerCards.forEach { it.updateContent() }
+        } else {
+            render()
+        }
     }
 
     private fun render() {
         setContentView(createContent())
+        isViewBuilt = true
     }
 
     private fun createContent(): ScrollView {
+        providerCards.clear()
+
         val rootLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(AntTheme.dp(this@MainActivity, 16), 0, AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 24))
@@ -69,35 +83,45 @@ class MainActivity : Activity() {
         val totalProviders = StreamingProvider.entries.size
 
         // 1. Hero Status Card
-        val hero = HeroStatusCard(
+        heroCard = HeroStatusCard(
             context = this,
-            isServiceEnabled = isServiceEnabled,
-            isAutomationEnabled = isAutomationEnabled,
             version = updater.installedVersionName(),
-            activeAppsCount = activeProviders,
-            totalAppsCount = totalProviders,
             onPrimaryAction = {
-                if (!isServiceEnabled) openAccessibilitySettings()
+                if (!isAccessibilityServiceEnabled()) openAccessibilitySettings()
                 else SimulatorDialog(this, preferences).show()
             },
             onSecondaryAction = {
-                if (!isServiceEnabled) openAppInfo()
+                if (!isAccessibilityServiceEnabled()) openAppInfo()
                 else openAccessibilitySettings()
             },
-        ).createView()
-        rootLayout.addView(hero)
+        )
+        val heroView = heroCard.createView(
+            isServiceEnabled = isServiceEnabled,
+            isAutomationEnabled = isAutomationEnabled,
+            activeAppsCount = activeProviders,
+            totalAppsCount = totalProviders,
+        )
+        rootLayout.addView(heroView)
 
-        // 2. Quick Tools Section
+        // 2. Sleep Timer Card (Xitee1/sleep-timer style universal media pause & screen lock)
+        val sleepTimerCard = SleepTimerCard(
+            context = this,
+            preferences = preferences,
+            onStateChanged = { updateHeroStatus() },
+        )
+        rootLayout.addView(sleepTimerCard.createView())
+
+        // 3. Quick Tools Section
         val tools = QuickToolsSection(
             context = this,
             onOpenSimulator = { SimulatorDialog(this, preferences).show() },
-            onOpenPhrases = { CustomPhrasesDialog(this, preferences).show { render() } },
-            onOpenDiagnostics = { DiagnosticsDialog(this, preferences).show { render() } },
+            onOpenPhrases = { CustomPhrasesDialog(this, preferences).show { updateHeroStatus() } },
+            onOpenDiagnostics = { DiagnosticsDialog(this, preferences).show { updateHeroStatus() } },
             onCheckUpdates = { showUpdateDialog() },
         ).createView()
         rootLayout.addView(tools)
 
-        // 3. Section: Streaming Apps
+        // 4. Section: Streaming Apps
         rootLayout.addView(createSectionHeader("Streamings Monitorados", "Toque em qualquer streaming para ajustar regras específicas e modo sono."))
         StreamingProvider.entries.forEach { provider ->
             val card = ProviderCard(
@@ -107,27 +131,29 @@ class MainActivity : Activity() {
                 isInstalled = isAppInstalled(provider),
                 onCardClicked = {
                     ProviderConfigDialog(this, preferences).show(provider) {
-                        render()
+                        providerCards.forEach { it.updateContent() }
+                        updateHeroStatus()
                     }
                 },
-                onToggleChanged = { render() },
-            ).createView()
-            rootLayout.addView(card)
+                onToggleChanged = { updateHeroStatus() },
+            )
+            providerCards.add(card)
+            rootLayout.addView(card.createView())
         }
 
-        // 4. Section: Global Actions
+        // 5. Section: Global Actions
         rootLayout.addView(createSectionHeader("Ações Globais de Pulo", "Configurações padrão aplicadas a todos os aplicativos de streaming."))
         SkipAction.entries.forEach { action ->
             val actionCard = ActionToggleCard(
                 context = this,
                 action = action,
                 preferences = preferences,
-                onToggleChanged = { render() },
+                onToggleChanged = { updateHeroStatus() },
             ).createView()
             rootLayout.addView(actionCard)
         }
 
-        // 5. Section: Privacy & Security footer
+        // 6. Section: Privacy & Security footer
         rootLayout.addView(createPrivacyFooter())
 
         return ScrollView(this).apply {
@@ -136,6 +162,15 @@ class MainActivity : Activity() {
             addView(rootLayout)
             applySystemBarPadding()
         }
+    }
+
+    private fun updateHeroStatus() {
+        if (!isViewBuilt) return
+        val isServiceEnabled = isAccessibilityServiceEnabled()
+        val isAutomationEnabled = preferences.isAutomationEnabled
+        val activeProviders = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
+        val totalProviders = StreamingProvider.entries.size
+        heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
     }
 
     private fun createSectionHeader(title: String, subtitle: String): LinearLayout =
@@ -173,13 +208,13 @@ class MainActivity : Activity() {
             background = AntTheme.rounded(AntTheme.CARD_SURFACE, 12f, AntTheme.CARD_BORDER, 1, this@MainActivity)
 
             val pTitle = TextView(this@MainActivity).apply {
-                text = "🛡️ Privacidade & Segurança Total"
+                text = "🛡️ Privacidade & Proteção Total de Alarmes"
                 setTextColor(AntTheme.TEXT_PRIMARY)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 13f)
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
             val pDesc = TextView(this@MainActivity).apply {
-                text = "O AntSKIP não grava a tela, não lê vídeos, não acessa credenciais e funciona 100% offline em segundo plano sem enviar dados para a internet."
+                text = "O AntSKIP não grava a tela, não lê vídeos, não acessa credenciais e funciona 100% offline. O temporizador de sono nunca silencia o canal de alarmes (STREAM_ALARM)."
                 setTextColor(AntTheme.TEXT_MUTED)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 11.5f)
                 setPadding(0, AntTheme.dp(this@MainActivity, 4), 0, 0)
@@ -213,6 +248,14 @@ class MainActivity : Activity() {
                 Uri.fromParts("package", packageName, null),
             ),
         )
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
     }
 
     private fun applyModernSystemBars() {

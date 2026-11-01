@@ -2,9 +2,19 @@
     <style name="AppTheme" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowBackground">#0B0E14</item>
+        <item name="android:statusBarColor">#0B0E14</item>
+        <item name="android:navigationBarColor">#0B0E14</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:colorAccent">#FF7A00</item>
         <item name="android:colorControlActivated">#FF7A00</item>
+        <item name="android:alertDialogTheme">@style/AntDarkDialogTheme</item>
+    </style>
+
+    <style name="AntDarkDialogTheme" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#FF7A00</item>
+        <item name="android:textColor">#F1F5F9</item>
+        <item name="android:textColorPrimary">#F1F5F9</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
     </style>
 </resources>

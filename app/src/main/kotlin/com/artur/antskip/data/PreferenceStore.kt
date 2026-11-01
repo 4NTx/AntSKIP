@@ -116,6 +116,28 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(provider.preferenceKey, enabled).apply()
     }
 
+    // Sleep Timer (Xitee1/sleep-timer style) settings
+    val isSleepTimerPauseMediaEnabled: Boolean
+        get() = preferences.getBoolean(KEY_SLEEP_TIMER_PAUSE_MEDIA, true)
+
+    fun setSleepTimerPauseMediaEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_SLEEP_TIMER_PAUSE_MEDIA, enabled).apply()
+    }
+
+    val isSleepTimerTurnOffScreenEnabled: Boolean
+        get() = preferences.getBoolean(KEY_SLEEP_TIMER_TURN_OFF_SCREEN, true)
+
+    fun setSleepTimerTurnOffScreenEnabled(enabled: Boolean) {
+        preferences.edit().putBoolean(KEY_SLEEP_TIMER_TURN_OFF_SCREEN, enabled).apply()
+    }
+
+    val sleepTimerDurationMinutes: Int
+        get() = preferences.getInt(KEY_SLEEP_TIMER_DURATION_MINUTES, 15)
+
+    fun setSleepTimerDurationMinutes(minutes: Int) {
+        preferences.edit().putInt(KEY_SLEEP_TIMER_DURATION_MINUTES, minutes.coerceAtLeast(1)).apply()
+    }
+
     fun diagnosticLogs(): String =
         preferences.getString(KEY_DIAGNOSTIC_LOGS, "").orEmpty()
 
@@ -212,8 +234,11 @@ class PreferenceStore(context: Context) {
         const val KEY_AUTOMATION_ENABLED = "automation_enabled"
         const val KEY_BLOCKED_PHRASES = "blocked_phrases"
         const val KEY_DIAGNOSTIC_LOGS = "diagnostic_logs"
+        const val KEY_SLEEP_TIMER_PAUSE_MEDIA = "sleep_timer_pause_media"
+        const val KEY_SLEEP_TIMER_TURN_OFF_SCREEN = "sleep_timer_turn_off_screen"
+        const val KEY_SLEEP_TIMER_DURATION_MINUTES = "sleep_timer_duration_minutes"
         const val KEY_MIGRATION_VERSION = "migration_version"
-        const val CURRENT_MIGRATION_VERSION = 6
+        const val CURRENT_MIGRATION_VERSION = 7
         const val MINUTES_PER_DAY = 24 * 60
         const val DEFAULT_SLEEP_START_MINUTES = 23 * 60
         const val DEFAULT_SLEEP_END_MINUTES = 7 * 60

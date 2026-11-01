@@ -6,5 +6,13 @@
     <string name="toast_skipping_recap">Skipping recap</string>
     <string name="toast_skipping_credits">Skipping credits</string>
     <string name="toast_skipping_preview">Skipping preview</string>
-    <string name="toast_skipping_next_episode">Skipping to the next episode</string>
+    <string name="toast_skipping_next_episode">Skipping to next episode</string>
+
+    <string name="sleep_timer_title">Sleep Timer</string>
+    <string name="sleep_timer_notification_title">Sleep Timer</string>
+    <string name="sleep_timer_channel_name">Sleep Timer</string>
+    <string name="sleep_timer_channel_desc">Shows active sleep timer countdown and quick controls.</string>
+    <string name="action_add_five_min">+5 min</string>
+    <string name="action_sub_five_min">-5 min</string>
+    <string name="action_stop_timer">Stop</string>
 </resources>

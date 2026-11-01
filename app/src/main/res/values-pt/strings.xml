@@ -1,10 +1,18 @@
 <resources>
     <string name="app_name">AntSKIP</string>
     <string name="accessibility_service_label">AntSKIP</string>
-    <string name="accessibility_service_description">Toca automaticamente em botoes de pular nos apps de streaming selecionados quando aparecem.</string>
+    <string name="accessibility_service_description">Toca automaticamente em botões de pular nos apps de streaming selecionados quando aparecem.</string>
     <string name="toast_skipping_intro">Pulando abertura</string>
     <string name="toast_skipping_recap">Pulando resumo</string>
-    <string name="toast_skipping_credits">Pulando creditos</string>
-    <string name="toast_skipping_preview">Pulando previa</string>
-    <string name="toast_skipping_next_episode">Pulando para o proximo episodio</string>
+    <string name="toast_skipping_credits">Pulando créditos</string>
+    <string name="toast_skipping_preview">Pulando prévia</string>
+    <string name="toast_skipping_next_episode">Pulando para o próximo episódio</string>
+
+    <string name="sleep_timer_title">Temporizador de Sono</string>
+    <string name="sleep_timer_notification_title">Temporizador de Sono (AntSKIP)</string>
+    <string name="sleep_timer_channel_name">Temporizador de Sono</string>
+    <string name="sleep_timer_channel_desc">Mostra a contagem regressiva ativa e controles rápidos do temporizador.</string>
+    <string name="action_add_five_min">+5 min</string>
+    <string name="action_sub_five_min">-5 min</string>
+    <string name="action_stop_timer">Parar</string>
 </resources>

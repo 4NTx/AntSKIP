@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <queries>
         <package android:name="com.crunchyroll.crunchyroid" />
@@ -44,6 +48,15 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/ant_skip_accessibility_service" />
+        </service>
+
+        <service
+            android:name=".service.SleepTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Temporizador de sono para pausar midia e desligar tela" />
         </service>
 
     </application>

@@ -44,6 +44,9 @@ class SkipMatcher(
             if (action != null && isActionAllowed(action, provider)) {
                 val targets = node.clickCandidates(provider, rootBounds)
                 val gestureBounds = Rect().also(node::getBoundsInScreen)
+                if (gestureBounds.isEmpty) {
+                    node.parent?.getBoundsInScreen(gestureBounds)
+                }
                 val result = MatchResult(targets, action, matchedText, visited, gestureBounds)
                 if (targets.isNotEmpty()) {
                     return result

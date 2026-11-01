@@ -21,6 +21,9 @@ class ProviderCard(
     private val onCardClicked: () -> Unit,
     private val onToggleChanged: (Boolean) -> Unit,
 ) {
+    private lateinit var summaryText: TextView
+    private var sleepBadge: TextView? = null
+
     fun createView(): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -51,7 +54,7 @@ class ProviderCard(
 
                 val installedBadge = AntTheme.badge(
                     context,
-                    if (isInstalled) "Instalado" else "Nao detectado",
+                    if (isInstalled) "Instalado" else "Não detectado",
                     if (isInstalled) AntTheme.SUCCESS_TEXT else AntTheme.TEXT_MUTED,
                     if (isInstalled) AntTheme.SUCCESS_BG else AntTheme.BG_CANVAS,
                     if (isInstalled) AntTheme.SUCCESS_BORDER else AntTheme.CARD_BORDER,
@@ -69,6 +72,7 @@ class ProviderCard(
                     isChecked = preferences.isProviderEnabled(provider)
                     setOnCheckedChangeListener { _, isChecked ->
                         preferences.setProviderEnabled(provider, isChecked)
+                        updateContent()
                         onToggleChanged(isChecked)
                     }
                 }
@@ -80,15 +84,13 @@ class ProviderCard(
                 addView(sw)
             }
 
-            // Summary of rules
-            val summaryText = TextView(context).apply {
+            summaryText = TextView(context).apply {
                 text = ProviderRulesCopy.summary(provider, preferences)
                 setTextColor(AntTheme.TEXT_SECONDARY)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 setPadding(0, AntTheme.dp(context, 6), 0, AntTheme.dp(context, 6))
             }
 
-            // Bottom bar: Tap hint and Sleep protection status if active
             val bottomRow = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -103,7 +105,7 @@ class ProviderCard(
                 addView(tapHint)
 
                 if (preferences.isSleepProtectionActive(provider)) {
-                    val sleepBadge = AntTheme.badge(
+                    sleepBadge = AntTheme.badge(
                         context,
                         "Modo dormir ativo",
                         AntTheme.WARNING_TEXT,
@@ -120,4 +122,8 @@ class ProviderCard(
 
             setOnClickListener { onCardClicked() }
         }
+
+    fun updateContent() {
+        summaryText.text = ProviderRulesCopy.summary(provider, preferences)
+    }
 }
