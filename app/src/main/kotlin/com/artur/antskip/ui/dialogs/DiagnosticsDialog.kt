@@ -22,7 +22,7 @@ class DiagnosticsDialog(
     fun show(onLogsCleared: () -> Unit = {}) {
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 20), AntTheme.dp(context, 16), AntTheme.dp(context, 20), AntTheme.dp(context, 20))
+            setPadding(AntTheme.dp(context, 18), AntTheme.dp(context, 16), AntTheme.dp(context, 18), AntTheme.dp(context, 16))
             background = AntTheme.rounded(AntTheme.CARD_SURFACE, 16f, AntTheme.CARD_BORDER, 1, context)
         }
 
@@ -35,24 +35,24 @@ class DiagnosticsDialog(
         }
 
         val subtitle = TextView(context).apply {
-            text = "Histórico recente de eventos de acessibilidade, detecções e cliques de botões."
+            text = "Histórico de eventos de acessibilidade, detecções e cliques de botões."
             setTextColor(AntTheme.TEXT_SECONDARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(0, 0, 0, AntTheme.dp(context, 14))
+            setPadding(0, 0, 0, AntTheme.dp(context, 12))
         }
 
         val logs = preferences.diagnosticLogs()
         val logsDisplay = TextView(context).apply {
             text = if (logs.isBlank()) "Nenhum log registrado ainda.\nAbra um app de streaming para começar a monitorar." else logs
             setTextColor(AntTheme.TEXT_SECONDARY)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
             typeface = Typeface.MONOSPACE
             setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 12), AntTheme.dp(context, 12), AntTheme.dp(context, 12))
             background = AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
         }
 
         val logScroll = ScrollView(context).apply {
-            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 260))
+            val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 220))
             params.bottomMargin = AntTheme.dp(context, 14)
             layoutParams = params
             addView(logsDisplay)
@@ -98,8 +98,12 @@ class DiagnosticsDialog(
         container.addView(logScroll)
         container.addView(buttonsRow)
 
+        val outerScroll = ScrollView(context).apply {
+            addView(container)
+        }
+
         AlertDialog.Builder(context)
-            .setView(container)
+            .setView(outerScroll)
             .setPositiveButton("Fechar", null)
             .show()
     }

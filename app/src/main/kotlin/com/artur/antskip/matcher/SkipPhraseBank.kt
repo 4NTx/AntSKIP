@@ -14,16 +14,6 @@ object SkipPhraseBank {
 
     private val exactPhrases: Map<SkipAction, Set<String>> = mapOf(
         SkipAction.INTRO to genericIntroPhrases,
-        SkipAction.NEXT_EPISODE to normalizedSet(
-            "proximo",
-            "proxima",
-            "next",
-            "siguiente",
-            "suivant",
-            "weiter",
-            "volgende",
-            "sonraki",
-        ),
     )
 
     private val phrases: Map<SkipAction, Set<String>> = mapOf(
@@ -247,16 +237,13 @@ object SkipPhraseBank {
             // French
             "episode suivant",
             "épisode suivant",
-            "suivant",
             "regarder l episode suivant",
             // German
             "nachste folge",
             "nächste folge",
             "naechste folge",
-            "weiter",
             // Dutch & Italian
             "volgende aflevering",
-            "volgende",
             "prossimo episodio",
             "episodio successivo",
             // Polish
@@ -270,7 +257,6 @@ object SkipPhraseBank {
             "下一集",
             "下一個",
             "sonraki bolum",
-            "sonraki",
         ),
     )
 

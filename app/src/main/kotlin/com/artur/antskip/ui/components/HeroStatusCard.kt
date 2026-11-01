@@ -2,6 +2,7 @@ package com.artur.antskip.ui.components
 
 import android.content.Context
 import android.graphics.Typeface
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.ViewGroup
@@ -31,20 +32,20 @@ class HeroStatusCard(
     ): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(AntTheme.dp(context, 20), AntTheme.dp(context, 20), AntTheme.dp(context, 20), AntTheme.dp(context, 20))
+            setPadding(AntTheme.dp(context, 18), AntTheme.dp(context, 18), AntTheme.dp(context, 18), AntTheme.dp(context, 18))
             background = AntTheme.rounded(AntTheme.HERO_BG, 18f, AntTheme.HERO_BORDER, 1, context)
             elevation = AntTheme.dp(context, 6).toFloat()
             val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             params.bottomMargin = AntTheme.dp(context, 16)
             layoutParams = params
 
-            // Top row: Title + Version + Automation status badge
+            // Top row: Dot + Title + Version + Spacer + Status pill badge
             val topRow = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
 
                 dotView = TextView(context).apply {
-                    val dotParams = LinearLayout.LayoutParams(AntTheme.dp(context, 8), AntTheme.dp(context, 8))
+                    val dotParams = LinearLayout.LayoutParams(AntTheme.dp(context, 9), AntTheme.dp(context, 9))
                     dotParams.marginEnd = AntTheme.dp(context, 8)
                     layoutParams = dotParams
                 }
@@ -52,7 +53,7 @@ class HeroStatusCard(
                 val title = TextView(context).apply {
                     text = "AntSKIP"
                     setTextColor(AntTheme.TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 24f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
                     typeface = Typeface.DEFAULT_BOLD
                 }
 
@@ -73,9 +74,11 @@ class HeroStatusCard(
                 }
 
                 statusBadgeView = TextView(context).apply {
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
                     setPadding(AntTheme.dp(context, 10), AntTheme.dp(context, 4), AntTheme.dp(context, 10), AntTheme.dp(context, 4))
                 }
 
@@ -88,8 +91,8 @@ class HeroStatusCard(
 
             descView = TextView(context).apply {
                 setTextColor(AntTheme.TEXT_SECONDARY)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-                setPadding(0, AntTheme.dp(context, 10), 0, AntTheme.dp(context, 14))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setPadding(0, AntTheme.dp(context, 10), 0, AntTheme.dp(context, 12))
             }
 
             val metricsRow = LinearLayout(context).apply {
@@ -114,7 +117,7 @@ class HeroStatusCard(
 
                 primaryBtn = Button(context).apply {
                     setTextColor(AntTheme.TEXT_INVERSE)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
                     typeface = Typeface.DEFAULT_BOLD
                     background = AntTheme.rippleButton(AntTheme.ACCENT_PRIMARY, radiusDp = 10f, context = context)
                     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 44))
@@ -123,7 +126,7 @@ class HeroStatusCard(
 
                 secondaryBtn = Button(context).apply {
                     setTextColor(AntTheme.TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                     typeface = Typeface.DEFAULT_BOLD
                     background = AntTheme.rounded(AntTheme.CARD_SURFACE, 10f, AntTheme.CARD_BORDER, 1, context)
                     val sParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 40))
@@ -158,9 +161,9 @@ class HeroStatusCard(
         dotView.background = AntTheme.rounded(dotColor, 6f, null, 0, context)
 
         statusBadgeView.text = when {
-            !isServiceEnabled -> "Acessibilidade desligada"
+            !isServiceEnabled -> "Desativado"
             !isAutomationEnabled -> "Pausado"
-            else -> "Automação ativa"
+            else -> "Ativo"
         }
         val textColor = when {
             !isServiceEnabled -> AntTheme.DANGER_TEXT
@@ -188,7 +191,7 @@ class HeroStatusCard(
 
         metricTextView.text = "Streamings Monitorados: $activeAppsCount de $totalAppsCount ativos"
 
-        primaryBtn.text = if (!isServiceEnabled) "Ativar Acessibilidade" else "Simulador de Reconhecimento"
+        primaryBtn.text = if (!isServiceEnabled) "Ativar Acessibilidade" else "Testar Reconhecimento"
         secondaryBtn.text = if (!isServiceEnabled) "Permitir Configurações Restritas" else "Gerenciar Acessibilidade do Android"
     }
 }

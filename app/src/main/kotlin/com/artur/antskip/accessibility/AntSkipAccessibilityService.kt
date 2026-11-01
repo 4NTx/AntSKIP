@@ -132,28 +132,13 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
     private fun tapBounds(provider: StreamingProvider, action: SkipAction, bounds: Rect): Boolean {
         val gestureBuilder = GestureDescription.Builder()
-
-        if (provider == StreamingProvider.CRUNCHYROLL && action == SkipAction.NEXT_EPISODE) {
-            val tapYAboveLabel = bounds.top - maxOf(bounds.height() * 3f, NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX)
-            if (tapYAboveLabel > 0f) {
-                gestureBuilder.addStroke(
-                    GestureDescription.StrokeDescription(
-                        tapPath(bounds.exactCenterX(), tapYAboveLabel),
-                        0,
-                        GESTURE_TAP_DURATION_MS,
-                    ),
-                )
-            }
-        }
-
         gestureBuilder.addStroke(
             GestureDescription.StrokeDescription(
                 tapPath(bounds.exactCenterX(), bounds.exactCenterY()),
-                if (provider == StreamingProvider.CRUNCHYROLL && action == SkipAction.NEXT_EPISODE) GESTURE_SECOND_TAP_DELAY_MS else 0L,
+                0L,
                 GESTURE_TAP_DURATION_MS,
             ),
         )
-
         return dispatchGesture(gestureBuilder.build(), null, null)
     }
 
@@ -168,7 +153,5 @@ class AntSkipAccessibilityService : AccessibilityService() {
         private const val CLICK_COOLDOWN_MS = 2_000L
         private const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
         private const val GESTURE_TAP_DURATION_MS = 60L
-        private const val GESTURE_SECOND_TAP_DELAY_MS = 120L
-        private const val NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX = 140f
     }
 }

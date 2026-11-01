@@ -2,6 +2,7 @@ package com.artur.antskip.ui.components
 
 import android.content.Context
 import android.graphics.Typeface
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.ViewGroup
@@ -42,13 +43,15 @@ class ProviderCard(
                 val title = TextView(context).apply {
                     text = provider.label
                     setTextColor(AntTheme.TEXT_PRIMARY)
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 15.5f)
                     typeface = Typeface.DEFAULT_BOLD
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
                 }
 
                 val installedBadge = AntTheme.badge(
                     context,
-                    if (isInstalled) "Instalado" else "Não detectado",
+                    if (isInstalled) "Instalado" else "Não instalado",
                     if (isInstalled) AntTheme.SUCCESS_TEXT else AntTheme.TEXT_MUTED,
                     if (isInstalled) AntTheme.SUCCESS_BG else AntTheme.BG_CANVAS,
                     if (isInstalled) AntTheme.SUCCESS_BORDER else AntTheme.CARD_BORDER,
@@ -85,7 +88,7 @@ class ProviderCard(
                 }
                 setTextColor(AntTheme.TEXT_SECONDARY)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-                setPadding(0, AntTheme.dp(context, 4), 0, 0)
+                setPadding(0, AntTheme.dp(context, 6), 0, 0)
             }
 
             addView(topRow)

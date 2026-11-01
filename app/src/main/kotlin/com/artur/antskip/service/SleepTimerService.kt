@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -15,6 +16,7 @@ import android.os.CountDownTimer
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import android.view.KeyEvent
 import com.artur.antskip.R
 import com.artur.antskip.accessibility.AntSkipAccessibilityService
@@ -24,12 +26,18 @@ import com.artur.antskip.ui.MainActivity
 class SleepTimerService : Service() {
     private val preferences by lazy { PreferenceStore(this) }
     private var countDownTimer: CountDownTimer? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        releaseWakeLock()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -53,24 +61,69 @@ class SleepTimerService : Service() {
         return START_NOT_STICKY
     }
 
+    private fun acquireWakeLock(seconds: Long) {
+        releaseWakeLock()
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "AntSKIP:SleepTimerWakeLock",
+            ).apply {
+                setReferenceCounted(false)
+                acquire((seconds * 1000L) + 15_000L)
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+            }
+        } catch (_: Exception) {
+        }
+        wakeLock = null
+    }
+
+    private fun startAsForeground(seconds: Long) {
+        val notification = buildNotification(seconds)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                0,
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
     private fun startTimer(seconds: Long) {
         countDownTimer?.cancel()
         remainingSeconds = seconds
         isRunning = true
 
-        startForeground(NOTIFICATION_ID, buildNotification(remainingSeconds))
+        acquireWakeLock(remainingSeconds)
+        startAsForeground(remainingSeconds)
         onTickListener?.invoke(remainingSeconds)
 
         countDownTimer = object : CountDownTimer(remainingSeconds * 1000L, 1000L) {
             override fun onTick(millisUntilFinished: Long) {
                 remainingSeconds = (millisUntilFinished / 1000L) + 1
-                updateNotification(remainingSeconds)
                 onTickListener?.invoke(remainingSeconds)
             }
 
             override fun onFinish() {
                 remainingSeconds = 0L
                 isRunning = false
+                releaseWakeLock()
                 onTickListener?.invoke(0L)
                 onFinishListener?.invoke()
                 executeTimerFinishedActions()
@@ -89,6 +142,7 @@ class SleepTimerService : Service() {
         countDownTimer = null
         isRunning = false
         remainingSeconds = 0L
+        releaseWakeLock()
         onTickListener?.invoke(0L)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -121,6 +175,7 @@ class SleepTimerService : Service() {
 
         // 2. Request transient audio focus exclusively on USAGE_MEDIA / STREAM_MUSIC
         // This prompts video and music players to immediately halt playback.
+        // STREAM_ALARM is completely isolated and will continue firing normally!
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
                 .setAudioAttributes(
@@ -135,7 +190,7 @@ class SleepTimerService : Service() {
             // Abandon after a short moment so playback can be resumed anytime later
             Handler(Looper.getMainLooper()).postDelayed({
                 audioManager.abandonAudioFocusRequest(focusRequest)
-            }, 600)
+            }, 800)
         } else {
             @Suppress("DEPRECATION")
             audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
@@ -155,11 +210,6 @@ class SleepTimerService : Service() {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
         }
-    }
-
-    private fun updateNotification(seconds: Long) {
-        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICATION_ID, buildNotification(seconds))
     }
 
     private fun buildNotification(seconds: Long): Notification {
@@ -209,6 +259,8 @@ class SleepTimerService : Service() {
             Notification.Builder(this)
         }
 
+        val stopTimeMs = System.currentTimeMillis() + (seconds * 1000L)
+
         builder
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(getString(R.string.sleep_timer_notification_title))
@@ -216,6 +268,13 @@ class SleepTimerService : Service() {
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            .setWhen(stopTimeMs)
+            .setShowWhen(true)
+            .setUsesChronometer(true)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.setChronometerCountDown(true)
+        }
 
         // Notification action buttons
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT_WATCH) {

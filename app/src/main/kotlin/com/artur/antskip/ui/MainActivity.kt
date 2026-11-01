@@ -252,22 +252,29 @@ class MainActivity : Activity() {
 
     private fun ScrollView.applySystemBarPadding() {
         setOnApplyWindowInsetsListener { view, insets ->
-            val topInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                insets.getInsets(WindowInsets.Type.systemBars()).top
+            val topInset: Int
+            val bottomInset: Int
+            val leftInset: Int
+            val rightInset: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                topInset = bars.top
+                bottomInset = bars.bottom
+                leftInset = bars.left
+                rightInset = bars.right
             } else {
                 @Suppress("DEPRECATION")
-                insets.systemWindowInsetTop
-            }
-            val bottomInset = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                insets.getInsets(WindowInsets.Type.systemBars()).bottom
-            } else {
-                @Suppress("DEPRECATION")
-                insets.systemWindowInsetBottom
+                run {
+                    topInset = insets.systemWindowInsetTop
+                    bottomInset = insets.systemWindowInsetBottom
+                    leftInset = insets.systemWindowInsetLeft
+                    rightInset = insets.systemWindowInsetRight
+                }
             }
             view.setPadding(
-                0,
+                leftInset,
                 topInset + AntTheme.dp(this@MainActivity, 12),
-                0,
+                rightInset,
                 bottomInset + AntTheme.dp(this@MainActivity, 16),
             )
             insets

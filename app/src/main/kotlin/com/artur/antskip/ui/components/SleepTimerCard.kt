@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
+import com.artur.antskip.accessibility.AntSkipAccessibilityService
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.service.SleepTimerService
 import com.artur.antskip.ui.theme.AntTheme
@@ -73,7 +74,7 @@ class SleepTimerCard(
             addView(headerRow)
             addView(desc)
 
-            // Content container: switch between running mode and idle mode
+            // Dynamic Content
             val dynamicContainer = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -90,7 +91,7 @@ class SleepTimerCard(
 
             updateContent()
 
-            // Register live tick listener
+            // Live tick listener
             SleepTimerService.onTickListener = {
                 (context as? android.app.Activity)?.runOnUiThread {
                     if (SleepTimerService.isRunning) {
@@ -223,16 +224,19 @@ class SleepTimerCard(
     }
 
     private fun renderIdleState(container: LinearLayout, onRefresh: () -> Unit) {
-        // Quick preset chips row
-        val chipsRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            val cParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            cParams.bottomMargin = AntTheme.dp(context, 10)
-            layoutParams = cParams
-        }
-
         val presets = listOf(10, 15, 30, 45, 60)
         val chipViews = mutableListOf<TextView>()
+
+        // Time display & stepper row ([-5m] [ X min ] [+5m])
+        val stepperRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(AntTheme.dp(context, 10), AntTheme.dp(context, 6), AntTheme.dp(context, 10), AntTheme.dp(context, 6))
+            background = AntTheme.rounded(AntTheme.BG_CANVAS, 10f, AntTheme.CARD_BORDER, 1, context)
+            val sParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            sParams.bottomMargin = AntTheme.dp(context, 10)
+            layoutParams = sParams
+        }
 
         val startBtn = Button(context).apply {
             text = "Iniciar Temporizador ($selectedMinutes min)"
@@ -245,6 +249,68 @@ class SleepTimerCard(
                 startSleepTimer(selectedMinutes * 60L)
                 onRefresh()
             }
+        }
+
+        val timeLabel = TextView(context).apply {
+            text = "$selectedMinutes minutos"
+            setTextColor(AntTheme.TEXT_PRIMARY)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            typeface = Typeface.DEFAULT_BOLD
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        fun updateSelectedTime(min: Int) {
+            selectedMinutes = min.coerceIn(1, 180)
+            preferences.setSleepTimerDurationMinutes(selectedMinutes)
+            timeLabel.text = "$selectedMinutes minutos"
+            startBtn.text = "Iniciar Temporizador ($selectedMinutes min)"
+
+            chipViews.forEachIndexed { idx, cv ->
+                val sel = presets[idx] == selectedMinutes
+                cv.setTextColor(if (sel) AntTheme.TEXT_INVERSE else AntTheme.TEXT_SECONDARY)
+                cv.background = if (sel) {
+                    AntTheme.rounded(AntTheme.ACCENT_PRIMARY, 8f, null, 0, context)
+                } else {
+                    AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
+                }
+            }
+        }
+
+        val minusBtn = Button(context).apply {
+            text = "− 5m"
+            setTextColor(AntTheme.TEXT_PRIMARY)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = Typeface.DEFAULT_BOLD
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 8f, AntTheme.CARD_BORDER, 1, context)
+            layoutParams = LinearLayout.LayoutParams(AntTheme.dp(context, 68), AntTheme.dp(context, 36))
+            setOnClickListener {
+                updateSelectedTime(selectedMinutes - 5)
+            }
+        }
+
+        val plusBtn = Button(context).apply {
+            text = "+ 5m"
+            setTextColor(AntTheme.TEXT_PRIMARY)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = Typeface.DEFAULT_BOLD
+            background = AntTheme.rounded(AntTheme.CARD_SURFACE, 8f, AntTheme.CARD_BORDER, 1, context)
+            layoutParams = LinearLayout.LayoutParams(AntTheme.dp(context, 68), AntTheme.dp(context, 36))
+            setOnClickListener {
+                updateSelectedTime(selectedMinutes + 5)
+            }
+        }
+
+        stepperRow.addView(minusBtn)
+        stepperRow.addView(timeLabel)
+        stepperRow.addView(plusBtn)
+
+        // Quick preset chips row
+        val chipsRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val cParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            cParams.bottomMargin = AntTheme.dp(context, 10)
+            layoutParams = cParams
         }
 
         presets.forEach { min ->
@@ -266,18 +332,7 @@ class SleepTimerCard(
                 layoutParams = p
 
                 setOnClickListener {
-                    selectedMinutes = min
-                    preferences.setSleepTimerDurationMinutes(min)
-                    chipViews.forEachIndexed { idx, cv ->
-                        val sel = presets[idx] == selectedMinutes
-                        cv.setTextColor(if (sel) AntTheme.TEXT_INVERSE else AntTheme.TEXT_SECONDARY)
-                        cv.background = if (sel) {
-                            AntTheme.rounded(AntTheme.ACCENT_PRIMARY, 8f, null, 0, context)
-                        } else {
-                            AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
-                        }
-                    }
-                    startBtn.text = "Iniciar Temporizador ($selectedMinutes min)"
+                    updateSelectedTime(min)
                 }
             }
             chipViews.add(chip)
@@ -341,8 +396,20 @@ class SleepTimerCard(
 
             addView(pauseRow)
             addView(screenRow)
+
+            // Warning if screen lock is on but accessibility is null
+            if (preferences.isSleepTimerTurnOffScreenEnabled && AntSkipAccessibilityService.instance == null) {
+                val warnText = TextView(context).apply {
+                    text = "ℹ️ Dica: Ative a acessibilidade acima para que o app possa desligar a tela automaticamente."
+                    setTextColor(AntTheme.WARNING_TEXT)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    setPadding(AntTheme.dp(context, 4), AntTheme.dp(context, 4), 0, 0)
+                }
+                addView(warnText)
+            }
         }
 
+        container.addView(stepperRow)
         container.addView(chipsRow)
         container.addView(optionsLayout)
         container.addView(startBtn)
@@ -364,6 +431,10 @@ class SleepTimerCard(
         val intent = Intent(context, SleepTimerService::class.java).apply {
             this.action = action
         }
-        context.startService(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
     }
 }

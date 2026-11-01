@@ -68,7 +68,7 @@ class SkipMatcher(
         provider: StreamingProvider,
         rootContextText: String,
     ): SkipAction? {
-        if (isBlocked(text)) return null
+        if (isBlocked(text, viewId)) return null
 
         // Quick match by known resource ID if present
         if (!viewId.isNullOrBlank()) {
@@ -88,7 +88,7 @@ class SkipMatcher(
             viewId.contains("skip_intro") || viewId.contains("skip_opening") || viewId.contains("pular_abertura") -> SkipAction.INTRO
             viewId.contains("skip_recap") || viewId.contains("pular_resumo") || viewId.contains("pular_recap") -> SkipAction.RECAP
             viewId.contains("skip_credits") || viewId.contains("pular_creditos") || viewId.contains("skip_ending") -> SkipAction.CREDITS
-            viewId.contains("next_episode") || viewId.contains("play_next") || viewId.contains("proximo_episodio") -> SkipAction.NEXT_EPISODE
+            viewId.contains("play_next_episode") || viewId.contains("proximo_episodio_btn") -> SkipAction.NEXT_EPISODE
             else -> null
         }
 
@@ -143,8 +143,22 @@ class SkipMatcher(
         }?.key ?: phraseBank.match(text)
     }
 
-    fun isBlocked(text: String): Boolean =
-        DEFAULT_BLOCKED_PHRASES.any { text.contains(it) }
+    fun isBlocked(text: String, viewId: String? = null): Boolean {
+        if (!viewId.isNullOrBlank()) {
+            val lowerId = viewId.lowercase()
+            if (BLOCKED_VIEW_IDS.any { lowerId.contains(it) }) {
+                return true
+            }
+        }
+
+        if (text.isBlank()) return false
+
+        if (SCRUB_TIME_REGEX.containsMatchIn(text)) {
+            return true
+        }
+
+        return BLOCKED_TRANSPORT_WORDS.any { text.contains(it) }
+    }
 
     private fun AccessibilityNodeInfo.clickCandidates(
         provider: StreamingProvider,
@@ -212,16 +226,89 @@ class SkipMatcher(
         const val MAX_BUTTON_WIDTH_RATIO = 0.85f
         const val MAX_BUTTON_HEIGHT_RATIO = 0.28f
 
-        val DEFAULT_BLOCKED_PHRASES = setOf(
-            "assistir do inicio",
-            "watch from beginning",
-            "restart",
-            "reiniciar",
+        val SCRUB_TIME_REGEX = Regex("""\b\d+\s*(s|seg|segundos?|seconds?|sec)\b""")
+
+        val BLOCKED_VIEW_IDS = setOf(
+            "exo_ffwd",
+            "exo_rew",
+            "exo_next",
+            "exo_prev",
+            "exo_play",
+            "exo_pause",
+            "exo_progress",
+            "exo_position",
+            "exo_duration",
+            "fast_forward",
+            "rewind",
+            "seek_forward",
+            "seek_backward",
+            "skip_forward",
+            "skip_backward",
+            "btn_ffwd",
+            "btn_rew",
+            "btn_next",
+            "btn_prev",
+            "transport_controls",
+            "media_control",
+            "player_control",
+            "scrub",
+            "seek_bar",
+            "progress_bar",
+        )
+
+        val BLOCKED_TRANSPORT_WORDS = setOf(
+            "segundo",
+            "segundos",
+            "second",
+            "seconds",
+            "avancar",
+            "avançar",
+            "retroceder",
+            "voltar",
+            "forward",
+            "rewind",
+            "backward",
+            "back",
+            "ahead",
+            "seek",
+            "scrub",
+            "play",
+            "pause",
+            "reproduzir",
+            "pausar",
+            "velocidade",
+            "speed",
+            "playback speed",
+            "qualidade",
+            "quality",
+            "legenda",
+            "legendas",
+            "subtitle",
+            "subtitles",
+            "audio",
+            "idioma",
+            "language",
+            "bloqueio",
+            "bloquear",
+            "lock",
+            "episodios",
+            "episódios",
+            "episodes",
+            "temporadas",
+            "seasons",
+            "minha lista",
+            "watchlist",
+            "compartilhar",
+            "share",
             "trailer",
             "mais informacoes",
             "more info",
             "detalhes",
             "details",
+            "assistir do inicio",
+            "watch from beginning",
+            "restart",
+            "reiniciar",
         )
 
         val PRIME_VIDEO_EXCLUDE_PHRASES = setOf(
@@ -240,17 +327,13 @@ class SkipMatcher(
         )
 
         val CRUNCHYROLL_NEXT_EPISODE_PHRASES = setOf(
-            "proximo episodio",
             "proximo episodio em",
-            "proximo ep",
+            "next episode in",
             "assistir proximo",
             "reproduzir proximo",
-            "next episode",
-            "next episode in",
-            "play next",
             "play next episode",
             "watch next episode",
-            "up next",
+            "up next in",
         )
 
         val CRUNCHYROLL_PHRASES = linkedMapOf(

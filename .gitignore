@@ -14,6 +14,7 @@ local.properties
 *.ap_
 *.idsig
 *.jks
+release-artifacts/
 
 # Kotlin
 .kotlin/
