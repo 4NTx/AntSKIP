@@ -1,8 +1,10 @@
 package com.artur.antskip.accessibility
 
 import android.accessibilityservice.AccessibilityService
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.GestureDescription
 import android.graphics.Path
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -22,57 +24,70 @@ class AntSkipAccessibilityService : AccessibilityService() {
     private var lastClickAtMillis = 0L
     private var lastNoMatchLogAtMillis = 0L
 
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        val info = serviceInfo ?: AccessibilityServiceInfo()
+        info.packageNames = StreamingProvider.allSupportedPackages().toTypedArray()
+        info.notificationTimeout = SERVICE_NOTIFICATION_TIMEOUT_MS
+        info.flags = info.flags or
+            AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
+            AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+            AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS
+        serviceInfo = info
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        val provider = event?.packageName?.toString()?.let(StreamingProvider::fromPackageName) ?: return
+        val eventPackage = event?.packageName?.toString().orEmpty()
+        var provider = StreamingProvider.fromPackageName(eventPackage)
+
+        val root = rootInActiveWindow
+        if (provider == null && root != null) {
+            val rootPackage = root.packageName?.toString().orEmpty()
+            provider = StreamingProvider.fromPackageName(rootPackage)
+        }
+
+        if (provider == null) return
+
         if (!preferences.isAutomationEnabled) {
-            logThrottled("event=${event.eventType} provider=${provider.label} ignored=automation_disabled")
+            logThrottled("event=${event?.eventType} provider=${provider.label} ignored=automation_disabled")
             return
         }
         if (!preferences.isProviderEnabled(provider)) {
-            logThrottled("event=${event.eventType} provider=${provider.label} ignored=provider_disabled")
+            logThrottled("event=${event?.eventType} provider=${provider.label} ignored=provider_disabled")
             return
         }
 
         val now = SystemClock.elapsedRealtime()
         if (now - lastClickAtMillis < CLICK_COOLDOWN_MS) return
 
-        val root = rootInActiveWindow ?: run {
-            logThrottled("event=${event.eventType} provider=${provider.label} result=no_active_window")
+        if (root == null) {
+            logThrottled("event=${event?.eventType} provider=${provider.label} result=no_active_window")
             return
         }
-        try {
-            val rootProvider = root.packageName?.toString()?.let(StreamingProvider::fromPackageName)
-            if (rootProvider != provider) {
-                logThrottled(
-                    "event=${event.eventType} provider=${provider.label} ignored=active_window_package " +
-                        "rootPackage=${root.packageName}",
-                )
-                return
-            }
 
-            val match = matcher.findTarget(root, provider)
-            if (match == null) {
-                logThrottled("event=${event.eventType} provider=${provider.label} result=no_match")
-                return
-            }
+        val match = matcher.findTarget(root, provider)
+        if (match == null) {
+            logThrottled("event=${event?.eventType} provider=${provider.label} result=no_match")
+            return
+        }
 
-            val clicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
-            val gestureClicked = !clicked && canUseGestureFallback(provider, match) && tapBounds(match.gestureBounds)
-            val logLine = "event=${event.eventType} provider=${provider.label} action=${match.action.name} " +
-                "targets=${match.targets.size} clicked=${clicked || gestureClicked} gesture=$gestureClicked " +
-                "visited=${match.visitedNodes} bounds=${match.gestureBounds.flattenToString()} text='${match.matchedText}'"
-            if (match.targets.isEmpty()) {
-                logThrottled(logLine)
-            } else {
-                preferences.appendDiagnosticLog(logLine)
-            }
-            if (clicked || gestureClicked) {
-                lastClickAtMillis = now
-                showSkipToast(match.action)
-            }
-            match.targets.forEach { it.recycle() }
-        } finally {
-            root.recycle()
+        val standardClicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
+        val gestureClicked = !standardClicked && canUseGestureFallback(match) && tapBounds(provider, match.action, match.gestureBounds)
+        val success = standardClicked || gestureClicked
+
+        val logLine = "event=${event?.eventType} provider=${provider.label} action=${match.action.name} " +
+            "targets=${match.targets.size} clicked=$success gesture=$gestureClicked " +
+            "visited=${match.visitedNodes} bounds=${match.gestureBounds.flattenToString()} text='${match.matchedText}'"
+
+        if (match.targets.isEmpty() && !gestureClicked) {
+            logThrottled(logLine)
+        } else {
+            preferences.appendDiagnosticLog(logLine)
+        }
+
+        if (success) {
+            lastClickAtMillis = now
+            showSkipToast(match.action)
         }
     }
 
@@ -98,43 +113,46 @@ class AntSkipAccessibilityService : AccessibilityService() {
         preferences.appendDiagnosticLog(message)
     }
 
-    private fun canUseGestureFallback(provider: StreamingProvider, match: SkipMatcher.MatchResult): Boolean =
-        provider == StreamingProvider.CRUNCHYROLL &&
-            match.action == SkipAction.NEXT_EPISODE &&
-            match.targets.isEmpty() &&
-            !match.gestureBounds.isEmpty
+    private fun canUseGestureFallback(match: SkipMatcher.MatchResult): Boolean =
+        !match.gestureBounds.isEmpty && match.gestureBounds.width() > 10 && match.gestureBounds.height() > 10
 
-    private fun tapBounds(bounds: android.graphics.Rect): Boolean {
-        val tapYAboveLabel = bounds.top - maxOf(bounds.height() * 4f, NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX)
+    private fun tapBounds(provider: StreamingProvider, action: SkipAction, bounds: Rect): Boolean {
         val gestureBuilder = GestureDescription.Builder()
-        if (tapYAboveLabel > 0f) {
-            gestureBuilder.addStroke(
-                GestureDescription.StrokeDescription(
-                    tapPath(bounds.exactCenterX(), tapYAboveLabel),
-                    0,
-                    GESTURE_TAP_DURATION_MS,
-                ),
-            )
+
+        if (provider == StreamingProvider.CRUNCHYROLL && action == SkipAction.NEXT_EPISODE) {
+            val tapYAboveLabel = bounds.top - maxOf(bounds.height() * 3f, NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX)
+            if (tapYAboveLabel > 0f) {
+                gestureBuilder.addStroke(
+                    GestureDescription.StrokeDescription(
+                        tapPath(bounds.exactCenterX(), tapYAboveLabel),
+                        0,
+                        GESTURE_TAP_DURATION_MS,
+                    ),
+                )
+            }
         }
+
+        // Tap exact center of button bounds
         gestureBuilder.addStroke(
             GestureDescription.StrokeDescription(
                 tapPath(bounds.exactCenterX(), bounds.exactCenterY()),
-                GESTURE_SECOND_TAP_DELAY_MS,
+                if (provider == StreamingProvider.CRUNCHYROLL && action == SkipAction.NEXT_EPISODE) GESTURE_SECOND_TAP_DELAY_MS else 0L,
                 GESTURE_TAP_DURATION_MS,
             ),
         )
-        val gesture = gestureBuilder.build()
-        return dispatchGesture(gesture, null, null)
+
+        return dispatchGesture(gestureBuilder.build(), null, null)
     }
 
     private fun tapPath(x: Float, y: Float): Path =
         Path().apply { moveTo(x, y) }
 
     private companion object {
-        const val CLICK_COOLDOWN_MS = 3_000L
+        const val SERVICE_NOTIFICATION_TIMEOUT_MS = 120L
+        const val CLICK_COOLDOWN_MS = 2_000L
         const val NO_MATCH_LOG_COOLDOWN_MS = 5_000L
-        const val GESTURE_TAP_DURATION_MS = 80L
-        const val GESTURE_SECOND_TAP_DELAY_MS = 140L
-        const val NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX = 160f
+        const val GESTURE_TAP_DURATION_MS = 60L
+        const val GESTURE_SECOND_TAP_DELAY_MS = 120L
+        const val NEXT_EPISODE_ABOVE_LABEL_OFFSET_PX = 140f
     }
 }

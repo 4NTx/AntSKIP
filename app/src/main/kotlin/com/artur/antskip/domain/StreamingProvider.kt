@@ -6,54 +6,84 @@ enum class StreamingProvider(
     val packageName: String,
     val enabledByDefault: Boolean,
     val description: String,
+    val brandColor: Int,
+    val brandAccentColor: Int,
     val packageAliases: Set<String> = emptySet(),
 ) {
     CRUNCHYROLL(
-        "provider_crunchyroll_enabled",
-        "Crunchyroll",
-        "com.crunchyroll.crunchyroid",
-        true,
-        "Quando ligado, o AntSKIP observa o player do Crunchyroll e toca apenas nos tipos de botao permitidos.",
+        preferenceKey = "provider_crunchyroll_enabled",
+        label = "Crunchyroll",
+        packageName = "com.crunchyroll.crunchyroid",
+        enabledByDefault = true,
+        description = "Detecta aberturas, encerramentos, recaps e próximo episódio com suporte a toques nativos e por gesto.",
+        brandColor = 0xFFFF640A.toInt(),
+        brandAccentColor = 0x33FF640A.toInt(),
+        packageAliases = setOf(
+            "com.crunchyroll.crunchyrollapp",
+        ),
     ),
     NETFLIX(
-        "provider_netflix_enabled",
-        "Netflix",
-        "com.netflix.mediaclient",
-        true,
-        "Quando ligado, o AntSKIP observa o player da Netflix. Creditos e Proximo episodio ficam ligados por padrao.",
-        setOf("com.netflix.ninja"),
+        preferenceKey = "provider_netflix_enabled",
+        label = "Netflix",
+        packageName = "com.netflix.mediaclient",
+        enabledByDefault = true,
+        description = "Detecta 'Pular abertura', 'Pular resumo', 'Pular créditos' e o botão final 'Próximo episódio'.",
+        brandColor = 0xFFE50914.toInt(),
+        brandAccentColor = 0x33E50914.toInt(),
+        packageAliases = setOf(
+            "com.netflix.ninja",
+        ),
     ),
     PRIME_VIDEO(
-        "provider_prime_video_enabled",
-        "Prime Video",
-        "com.amazon.avod.thirdpartyclient",
-        false,
-        "Quando ligado, o AntSKIP observa o Prime Video. Proximo episodio fica desligado por seguranca.",
-        setOf(
+        preferenceKey = "provider_prime_video_enabled",
+        label = "Prime Video",
+        packageName = "com.amazon.avod.thirdpartyclient",
+        enabledByDefault = true,
+        description = "Detecta intro, recap e créditos. Suporte refinado para não confundir com o menu X-Ray.",
+        brandColor = 0xFF00A8E1.toInt(),
+        brandAccentColor = 0x3300A8E1.toInt(),
+        packageAliases = setOf(
             "com.amazon.avod",
             "com.amazon.amazonvideo.livingroom",
         ),
     ),
     DISNEY_PLUS(
-        "provider_disney_plus_enabled",
-        "Disney+",
-        "com.disney.disneyplus",
-        false,
-        "Experimental. So funciona quando o app mostra textos acessiveis nos botoes.",
+        preferenceKey = "provider_disney_plus_enabled",
+        label = "Disney+",
+        packageName = "com.disney.disneyplus",
+        enabledByDefault = false,
+        description = "Detecta 'Pular introdução', 'Pular resumo' e 'Próximo episódio' no player do Disney+.",
+        brandColor = 0xFF113CCF.toInt(),
+        brandAccentColor = 0x33113CCF.toInt(),
+        packageAliases = setOf(
+            "com.disney.disneyplus.tv",
+        ),
     ),
     MAX(
-        "provider_max_enabled",
-        "Max",
-        "com.wbd.stream",
-        false,
-        "Experimental. So toca nos tipos de botao que voce deixar ligados.",
+        preferenceKey = "provider_max_enabled",
+        label = "Max",
+        packageName = "com.wbd.stream",
+        enabledByDefault = false,
+        description = "Detecta botões de pular introdução, recap e créditos na plataforma Max.",
+        brandColor = 0xFF002BE7.toInt(),
+        brandAccentColor = 0x33002BE7.toInt(),
+        packageAliases = setOf(
+            "com.hbo.hbonow",
+            "com.hbo.go",
+        ),
     ),
     PARAMOUNT_PLUS(
-        "provider_paramount_plus_enabled",
-        "Paramount+",
-        "com.cbs.app",
-        false,
-        "Experimental. Incluido para testar botoes de intro, recap e creditos.",
+        preferenceKey = "provider_paramount_plus_enabled",
+        label = "Paramount+",
+        packageName = "com.cbs.app",
+        enabledByDefault = false,
+        description = "Detecta botões de introdução, resumo e avançar episódio no Paramount+.",
+        brandColor = 0xFF0064FF.toInt(),
+        brandAccentColor = 0x330064FF.toInt(),
+        packageAliases = setOf(
+            "com.paramountplus",
+            "com.cbs.ott",
+        ),
     );
 
     fun isActionEnabledByDefault(action: SkipAction): Boolean =
@@ -72,10 +102,16 @@ enum class StreamingProvider(
             else -> action.enabledByDefault
         }
 
+    val allPackages: Set<String>
+        get() = setOf(packageName) + packageAliases
+
     companion object {
         fun fromPackageName(packageName: String): StreamingProvider? =
             entries.firstOrNull { provider ->
                 provider.packageName == packageName || packageName in provider.packageAliases
             }
+
+        fun allSupportedPackages(): Set<String> =
+            entries.flatMapTo(linkedSetOf()) { it.allPackages }
     }
 }

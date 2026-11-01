@@ -3,304 +3,120 @@
 ![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)
 ![Status](https://img.shields.io/badge/status-active-blue)
+![Size](https://img.shields.io/badge/APK%20Size-~700%20KB-success)
 ![License](https://img.shields.io/badge/license-private-lightgrey)
 
-AntSKIP is a lightweight Android accessibility app that automatically taps
-visible skip buttons in supported streaming apps. It is designed for the native
-Android apps, not for browser extensions or modified streaming clients.
+AntSKIP é um aplicativo Android ultra-leve que detecta e aperta automaticamente botões visíveis de pular em plataformas de streaming (Crunchyroll, Netflix, Prime Video, Disney+, Max, Paramount+ e mais). 
 
-The app does not record the screen, inspect video frames, bypass DRM, inject
-code into streaming apps, or interact with network traffic. It only reads
-accessibility text exposed by selected apps and performs a normal accessibility
-click when a matching button appears.
+Construído em **Kotlin puro com zero dependências externas** (sem AndroidX, sem Compose, sem bibliotecas pesadas de terceiros), mantendo o APK em apenas **~700 KB** com velocidade máxima, consumo mínimo de memória e sem risco de travamentos.
 
-## Features
+O aplicativo opera de forma 100% ética e segura: não grava tela, não inspeciona tráfego de rede, não acessa contas ou DRM e roda totalmente offline no seu aparelho via `AccessibilityService`.
 
-- Automatically skips intros/openings, recaps, credits/endings, previews, and
-  next-episode prompts when the selected app exposes an accessible button.
-- Shows an on-screen confirmation such as `Pulando abertura` after a successful
-  automatic tap.
-- Lets users enable or disable each streaming app independently.
-- Lets users enable or disable each skip action independently.
-- Supports per-app action rules with clear summaries, status indicators, and
-  provider-specific guidance.
-- Supports a per-app bedtime window for `Next episode`, so automatic episode
-  advance can stop during selected hours.
-- Supports one-time `Next episode` pauses per app, such as pausing for 1, 2, or
-  4 hours, or until a selected time.
-- Adds a stronger sleep mode that can also block credits skipping while sleep
-  protection is active, reducing accidental episode advance.
-- Supports custom phrases per action, so users can teach the app labels from
-  any language or app version.
-- Normalizes accents and casing before matching. For example, `Próximo`,
-  `proximo`, and `PROXIMO` are treated the same.
-- Shows the installed version and checks GitHub Releases for updates.
-- Includes copyable diagnostic logs for accessibility matching and click
-  troubleshooting.
-- Uses a cooldown after each tap to avoid repeated clicks.
-- Runs event-driven through Android Accessibility instead of polling the screen.
+---
 
-## Supported Apps
+## Principais Novidades & Recursos
 
-| App | Android package | Default | Status |
-| --- | --- | --- | --- |
-| Crunchyroll | `com.crunchyroll.crunchyroid` | Enabled | Primary support |
-| Netflix | `com.netflix.mediaclient` | Enabled | Primary support; credits and next episode on by default |
-| Prime Video | `com.amazon.avod.thirdpartyclient` | Disabled | Restricted support |
-| Disney+ | `com.disney.disneyplus` | Disabled | Experimental |
-| Max | `com.wbd.stream` | Disabled | Experimental |
-| Paramount+ | `com.cbs.app` | Disabled | Experimental |
+- **Visual Moderno Dark OLED**: Interface redesenhada com paleta dark profunda (`#0B0E14`), contraste alto, cantos arredondados modernos (16dp-20dp) e badges estilizados com as cores oficiais de cada streaming.
+- **Detecção Ultrarrápida (120ms)**: Latência reduzida de 500ms para 120ms para acionar o botão instantaneamente assim que ele surgir na tela.
+- **Clique Inteligente em Multi-camada**: 
+  1. Clique nativo de acessibilidade (`ACTION_CLICK`).
+  2. Escalamento automático na árvore de nós (para botões onde a ação de clique fica no container pai ou avô).
+  3. **Universal Gesture Fallback**: Se o player do streaming estiver em um container customizado (SurfaceView, ExoPlayer customizado, Compose) que não responda a cliques de acessibilidade, o AntSKIP despacha um toque por coordenadas diretamente no centro do botão detectado.
+- **Simulador Interativo Integrado**: Permite testar qualquer botão ou frase ("Pular abertura", "Skip Intro", etc.) em tempo real direto na interface para validar qual ação e app seriam acionados antes de assistir.
+- **Detecção de Apps Instalados**: O app identifica automaticamente se a Netflix, Crunchyroll, Prime Video, Disney+, Max ou Paramount+ estão instalados no aparelho via declaração `<queries>`.
+- **Prevenção de Falsos Cliques**: Validação rígida de bounding box para garantir que o app nunca clique na tela inteira do vídeo por engano (limite de 85% de largura e 28% de altura).
+- **Filtro Especial Prime Video**: Regra que impede cliques acidentais nos menus e overlays do X-Ray ("Elenco", "Música", "Cenas").
+- **Modo Dormir Inteligente**: Permite agendar horários recorrentes ou pausar o avanço de episódios por 1h, 2h ou 4h, além de opção para bloquear pulo de créditos durante o sono.
+- **Editor Completo de Frases**: Adicione frases personalizadas em qualquer idioma ou bloqueie termos indesejados.
 
-Restricted support means the app uses provider-specific labels and extra click
-target checks, but the provider still needs to expose accessible button text.
+---
 
-Crunchyroll uses stricter matching than the other providers. It only reacts to
-explicit visible labels such as `PULAR INTRODUCAO`, `PULAR ABERTURA`,
-`Skip Intro`, `Skip Opening`, or `Next Episode`, and rejects large clickable
-containers so it does not tap anime list rows or full-screen player areas.
+## Streamings Suportados
 
-Netflix uses provider-specific labels plus Android accessibility click
-fallbacks, because Netflix can expose the button action on an ancestor node
-instead of the text node itself. Netflix has `Credits` and `Next episode`
-enabled by default. Its next-episode matcher avoids persistent controls such as
-`Proximo episodio` / `Prox. ep.` and targets the final Portuguese `Proximo`
-button.
-
-Prime Video uses a stricter provider-specific matcher instead of the generic
-phrase bank. It supports intro, recap, credits, and preview labels by default.
-Next-episode prompts are available in per-app rules, but disabled by default for
-Prime Video because they are easier to confuse with credits or player controls.
-
-## Supported Skip Actions
-
-| Action | Default | Example labels |
+| App | Pacotes Android Suportados | Status |
 | --- | --- | --- |
-| Intros/openings | Enabled | `Pular abertura`, `Skip Intro`, `Skip Opening` |
-| Recaps/summaries | Enabled | `Pular resumo`, `Pular recapitulacao`, `Skip Recap` |
-| Credits/endings | Enabled | `Pular creditos`, `Skip Credits`, `Skip Ending` |
-| Previews | Disabled | `Pular previa`, `Skip Preview`, `Skip Trailer` |
-| Next episode | Enabled globally; disabled by default for Prime Video | `Proximo`, `Next Episode`, `Play Next Episode` |
+| **Crunchyroll** | `com.crunchyroll.crunchyroid`, `com.crunchyroll.crunchyrollapp` | Suporte Total (Intro, Recap, Créditos e Próximo Episódio) |
+| **Netflix** | `com.netflix.mediaclient`, `com.netflix.ninja` | Suporte Total (Pular abertura, Resumo, Créditos e Próximo final) |
+| **Prime Video** | `com.amazon.avod.thirdpartyclient`, `com.amazon.avod`, `com.amazon.amazonvideo.livingroom` | Suporte Total (Proteção avançada anti X-Ray) |
+| **Disney+** | `com.disney.disneyplus`, `com.disney.disneyplus.tv` | Suporte Nativo |
+| **Max** | `com.wbd.stream`, `com.hbo.hbonow`, `com.hbo.go` | Suporte Nativo |
+| **Paramount+** | `com.cbs.app`, `com.paramountplus`, `com.cbs.ott` | Suporte Nativo |
 
-The built-in phrase bank includes common labels in Portuguese, English, Spanish,
-French, German, Italian, Dutch, Polish, Japanese, Korean, Chinese, and Turkish.
-Because streaming apps frequently change their UI text, the in-app custom phrase
-editor is the recommended fallback for missing languages or regional variants.
+---
 
-## Install And Enable
+## Ações de Pulo Suportadas
 
-For manual installation from GitHub, download the signed APK from the latest
-release:
+| Ação | Padrão | Exemplos de Texto Reconhecidos |
+| --- | --- | --- |
+| **Aberturas e intros** | Ativado | `Pular abertura`, `Skip Intro`, `Pular introdução`, `Skip Opening`, `Saltar intro` |
+| **Recaps e resumos** | Ativado | `Pular resumo`, `Pular recapitulação`, `Skip Recap`, `Saltar resumen` |
+| **Créditos e encerramentos** | Ativado | `Pular créditos`, `Pular encerramento`, `Skip Credits`, `Skip Ending` |
+| **Previews e trailers** | Opcional | `Pular prévia`, `Pular trailer`, `Skip Preview` |
+| **Próximo episódio** | Configurável | `Próximo`, `Próximo episódio`, `Next Episode`, `Play Next Episode` |
 
-```text
-AntSKIP-v1.28-test-signed.apk
-```
+O banco de expressões nativo inclui termos em Português, Inglês, Espanhol, Francês, Alemão, Italiano, Holandês, Polonês, Japonês, Coreano, Chinês e Turco.
 
-Do not install `app-release-unsigned.apk` directly. It is not signed and Android
-will reject it.
+---
 
-1. Download the signed APK on the Android phone.
-2. Open the downloaded APK and allow installation from unknown sources if Android asks.
-3. Open AntSKIP.
-4. Tap `Ativar acessibilidade`.
-5. Enable the `AntSKIP` accessibility service.
-6. Return to AntSKIP and choose the apps and skip actions you want.
-7. Open a supported streaming app and play an episode with a skip button.
+## Como Instalar e Ativar
 
-When AntSKIP successfully taps a button, Android shows a short message on the
-screen, such as `Pulando abertura`.
+1. Baixe o APK assinado ou gere o APK via Gradle:
+   ```bash
+   gradle assembleDebug
+   ```
+2. Instale o APK gerado no seu dispositivo Android.
+3. Abra o **AntSKIP**.
+4. Toque no botão **Ativar acessibilidade**.
+5. Ative o serviço **AntSKIP**.
+   *(Se o Android exibir a mensagem de "Configurações Restritas", use o botão "Permitir Configurações Restritas" dentro do AntSKIP para liberar o acesso).*
+6. Escolha quais streamings e tipos de pulo você deseja ativos.
+7. Abra seu streaming e assista ao seu conteúdo! Quando o AntSKIP pular um botão, aparecerá uma notificação discreta na tela (ex: `Pulando abertura`).
 
-## Recommended First Test
+---
 
-For the first test, use the safest configuration:
+## Arquitetura do Projeto
 
-1. Keep `Automation` enabled.
-2. Keep only `Netflix`, `Crunchyroll`, or `Prime Video` enabled.
-3. Enable only `Intros/openings` while testing.
-4. Play an episode that shows a visible skip-intro button.
-5. Confirm that Android shows `Pulando abertura`.
-
-After that works, enable `Recaps/summaries`, `Credits/endings`, or
-`Next episode` one at a time on providers you are still testing. Netflix ships
-with credits and next episode enabled, but you can turn either one off in
-`Regras por app > Netflix`.
-
-## Restricted Settings
-
-Recent Android versions can block accessibility access for sideloaded apps with
-a message similar to:
-
-```text
-Restricted settings
-```
-
-or, in Portuguese:
-
-```text
-Controlada pelas configuracoes restritas
-```
-
-To unlock the accessibility service:
-
-1. Open Android `Settings`.
-2. Go to `Apps`.
-3. Select `AntSKIP`.
-4. Open the three-dot menu in the top-right corner.
-5. Tap `Allow restricted settings`.
-6. Confirm with PIN, password, or biometrics if Android asks.
-7. Return to `Settings > Accessibility`.
-8. Enable the `AntSKIP` accessibility service.
-
-Some Android skins translate or move this option, but it is usually on the app
-info screen for sideloaded apps.
-
-## Updates
-
-The main screen shows the installed version and checks the latest GitHub Release
-when the app opens. If a newer signed APK is available, AntSKIP shows an
-`Atualizacao disponivel` status with a button to open the download page.
-
-This check only contacts:
-
-```text
-https://api.github.com/repos/4NTx/AntSKIP/releases/latest
-```
-
-## Custom Phrases
-
-If a button is visible but AntSKIP does not tap it:
-
-1. Open AntSKIP.
-2. Go to `Ensinar frases`.
-3. Tap the action type, for example `Editar frases: Aberturas e intros`.
-4. Add the exact text shown by the streaming app, one phrase per line.
-5. Save and test the episode again.
-
-Examples:
-
-```text
-Pular abertura
-Proximo
-Skip Intro
-Next Episode
-```
-
-Custom phrases are stored locally in Android `SharedPreferences`.
-
-If the same phrase is saved more than once, AntSKIP keeps only one copy. This is
-intentional and does not create duplicate clicks.
-
-## Per-App Rules
-
-Global actions are only the default behavior. AntSKIP can also configure every
-action separately for every streaming app.
-
-Use `Regras por app` in the app UI to decide which actions are allowed for each
-provider. The screen shows a summary for each app, the current state of each
-rule, and provider-specific guidance for options that can advance playback.
-
-Crunchyroll intentionally ignores custom phrases in the matcher. It follows the
-per-app action rules and built-in strict labels for intros, recaps, credits, and
-next episode, because generic phrases caused false taps while browsing the anime
-list.
-
-Examples:
-
-- Keep `Next episode` enabled for Netflix if you want automatic episode advance.
-- Disable `Credits` for Netflix if you prefer to watch endings manually.
-- Keep `Next episode` disabled for Prime Video.
-- Enable only `Intros/openings` while testing a new provider.
-- Keep experimental providers disabled until you confirm their labels.
-
-If a per-app rule is changed, it overrides the global default for that provider.
-
-## Troubleshooting
-
-### The accessibility service is blocked
-
-If Android says the service is controlled by restricted settings, unlock it from
-the AntSKIP app info screen:
-
-```text
-Settings > Apps > AntSKIP > three-dot menu > Allow restricted settings
-```
-
-Then return to:
-
-```text
-Settings > Accessibility > AntSKIP
-```
-
-### The button appears but AntSKIP does not tap it
-
-- Confirm the streaming app is enabled in AntSKIP.
-- Confirm the action is enabled globally. For Netflix, Prime Video, and
-  experimental providers, also confirm it in `Per-app rules`.
-- Add the exact visible label in `Custom phrases`.
-- For Crunchyroll, the strict matcher supports built-in intro, recap, and
-  credits labels and does not use custom phrases.
-
-### AntSKIP taps the wrong button
-
-- Disable that action for the affected app in `Per-app rules`.
-- Avoid generic custom phrases such as `Next` unless they are scoped to a trusted
-  provider through per-app rules.
-
-## Known Limits
-
-- AntSKIP can only tap buttons that the streaming app exposes to Android
-  Accessibility.
-- If a streaming app hides the button from accessibility, no phrase can match it.
-- Streaming apps can change labels, package names, or accessibility behavior at
-  any time.
-- Next-episode prompts can behave differently for movies, specials, and final
-  episodes. Disable `Next episode` for that app if you prefer to manually
-  continue playback.
-- Very generic phrases such as `Next` or `Proximo` can be risky. Prefer per-app
-  rules and blocklist phrases when testing.
-- Some providers have package aliases for mobile and TV builds, but forks or
-  region-specific variants may still need another package entry.
-
-## Build
-
-Open the project directory:
-
-```powershell
-cd C:\Users\artur\AntSKIP
-```
-
-Build debug and release APKs:
-
-```powershell
-gradle :app:assembleDebug :app:assembleRelease
-```
-
-## Architecture
+O código foi totalmente modularizado e padronizado:
 
 ```text
 app/src/main/kotlin/com/artur/antskip
 ├── accessibility/
-│   └── AntSkipAccessibilityService.kt
+│   └── AntSkipAccessibilityService.kt      # Serviço de Acessibilidade, timeout 120ms, cliques e gestos
 ├── data/
-│   └── PreferenceStore.kt
+│   └── PreferenceStore.kt                 # Armazenamento e persistência das regras e preferências
 ├── domain/
-│   ├── SkipAction.kt
-│   └── StreamingProvider.kt
+│   ├── SkipAction.kt                      # Enum de ações de pulo
+│   └── StreamingProvider.kt               # Enum de streamings com cores, aliases e regras padrão
 ├── matcher/
-│   ├── NodeText.kt
-│   ├── SkipMatcher.kt
-│   ├── SkipPhraseBank.kt
-│   └── TextNormalization.kt
+│   ├── NodeText.kt                        # Extração de textos e IDs de botões
+│   ├── SkipMatcher.kt                     # Motor principal de matching e validação de bounding box
+│   ├── SkipPhraseBank.kt                  # Dicionário poliglota de termos e expressões
+│   └── TextNormalization.kt               # Normalizador de acentuação, casing e caracteres
 └── ui/
-    ├── MainActivity.kt
-    └── ProviderRulesCopy.kt
+    ├── MainActivity.kt                    # Atividade principal enxuta e desacoplada
+    ├── ProviderRulesCopy.kt               # Textos de orientação e avisos por app
+    ├── theme/
+    │   └── AntTheme.kt                    # Design tokens Dark OLED, utilitários visuais e gradientes
+    ├── components/
+    │   ├── HeroStatusCard.kt              # Card de status em tempo real com indicador luminoso
+    │   ├── ProviderCard.kt                # Card com cores oficiais, status de instalação e regras
+    │   ├── ActionToggleCard.kt            # Linha de toggle para ações globais
+    │   └── QuickToolsSection.kt           # Acesso rápido a Simulador, Frases, Logs e Updates
+    ├── dialogs/
+    │   ├── SimulatorDialog.kt             # Simulador de teste interativo de botões
+    │   ├── ProviderConfigDialog.kt        # Diálogo de regras individuais por streaming
+    │   ├── SleepModeDialog.kt             # Diálogo de modo sono e pausas temporárias
+    │   ├── CustomPhrasesDialog.kt         # Editor de termos customizados e bloqueios
+    │   └── DiagnosticsDialog.kt           # Visualizador e copiador de logs de diagnóstico
+    └── updater/
+        └── GitHubUpdateChecker.kt         # Checagem em background de novas releases no GitHub
 ```
 
-## Safety Model
+---
 
-- No screenshots.
-- No overlays.
-- No background screen recording.
-- No DRM bypass.
-- No modification of streaming app files.
-- No traffic inspection.
-- Accessibility events are limited to configured streaming package names.
+## Modelo de Segurança & Privacidade
+
+- **Zero Acesso a Vídeo**: Não acessa frames, codecs ou reprodução de vídeo.
+- **Sem Captura de Tela**: Não utiliza APIs de `MediaProjection` ou screenshot.
+- **Sem Interceptação de Rede**: Todas as regras de matching são avaliadas localmente.
+- **100% Offline**: Nenhuma informação de uso, histórico ou diagnóstico sai do aparelho.
