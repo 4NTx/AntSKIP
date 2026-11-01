@@ -10,21 +10,33 @@ class PreferenceStore(context: Context) {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
     val isAutomationEnabled: Boolean
-        get() = preferences.getBoolean(KEY_AUTOMATION_ENABLED, true)
+        get() = try {
+            preferences.getBoolean(KEY_AUTOMATION_ENABLED, true)
+        } catch (_: Exception) {
+            true
+        }
 
     fun setAutomationEnabled(enabled: Boolean) {
         preferences.edit().putBoolean(KEY_AUTOMATION_ENABLED, enabled).apply()
     }
 
     fun isActionEnabled(action: SkipAction): Boolean =
-        preferences.getBoolean(action.preferenceKey, action.enabledByDefault)
+        try {
+            preferences.getBoolean(action.preferenceKey, action.enabledByDefault)
+        } catch (_: Exception) {
+            action.enabledByDefault
+        }
 
     fun setActionEnabled(action: SkipAction, enabled: Boolean) {
         preferences.edit().putBoolean(action.preferenceKey, enabled).apply()
     }
 
     fun isProviderEnabled(provider: StreamingProvider): Boolean =
-        preferences.getBoolean(provider.preferenceKey, provider.enabledByDefault)
+        try {
+            preferences.getBoolean(provider.preferenceKey, provider.enabledByDefault)
+        } catch (_: Exception) {
+            provider.enabledByDefault
+        }
 
     fun setProviderEnabled(provider: StreamingProvider, enabled: Boolean) {
         preferences.edit().putBoolean(provider.preferenceKey, enabled).apply()
@@ -32,36 +44,55 @@ class PreferenceStore(context: Context) {
 
     // Sleep Timer (Xitee1/sleep-timer style) settings
     val isSleepTimerPauseMediaEnabled: Boolean
-        get() = preferences.getBoolean(KEY_SLEEP_TIMER_PAUSE_MEDIA, true)
+        get() = try {
+            preferences.getBoolean(KEY_SLEEP_TIMER_PAUSE_MEDIA, true)
+        } catch (_: Exception) {
+            true
+        }
 
     fun setSleepTimerPauseMediaEnabled(enabled: Boolean) {
         preferences.edit().putBoolean(KEY_SLEEP_TIMER_PAUSE_MEDIA, enabled).apply()
     }
 
     val isSleepTimerTurnOffScreenEnabled: Boolean
-        get() = preferences.getBoolean(KEY_SLEEP_TIMER_TURN_OFF_SCREEN, true)
+        get() = try {
+            preferences.getBoolean(KEY_SLEEP_TIMER_TURN_OFF_SCREEN, true)
+        } catch (_: Exception) {
+            true
+        }
 
     fun setSleepTimerTurnOffScreenEnabled(enabled: Boolean) {
         preferences.edit().putBoolean(KEY_SLEEP_TIMER_TURN_OFF_SCREEN, enabled).apply()
     }
 
     val sleepTimerDurationMinutes: Int
-        get() = preferences.getInt(KEY_SLEEP_TIMER_DURATION_MINUTES, 15)
+        get() = try {
+            preferences.getInt(KEY_SLEEP_TIMER_DURATION_MINUTES, 15)
+        } catch (_: Exception) {
+            15
+        }
 
     fun setSleepTimerDurationMinutes(minutes: Int) {
         preferences.edit().putInt(KEY_SLEEP_TIMER_DURATION_MINUTES, minutes.coerceAtLeast(1)).apply()
     }
 
     fun diagnosticLogs(): String =
-        preferences.getString(KEY_DIAGNOSTIC_LOGS, "").orEmpty()
+        try {
+            preferences.getString(KEY_DIAGNOSTIC_LOGS, "").orEmpty()
+        } catch (_: Exception) {
+            ""
+        }
 
     fun appendDiagnosticLog(message: String) {
-        val line = "${LocalDateTime.now().format(LOG_TIME_FORMATTER)}  $message"
-        val retainedLines = (diagnosticLogs().lineSequence() + line)
-            .filter { it.isNotBlank() }
-            .toList()
-            .takeLast(MAX_DIAGNOSTIC_LOG_LINES)
-        preferences.edit().putString(KEY_DIAGNOSTIC_LOGS, retainedLines.joinToString("\n")).apply()
+        try {
+            val line = "${LocalDateTime.now().format(LOG_TIME_FORMATTER)}  $message"
+            val retainedLines = (diagnosticLogs().lineSequence() + line)
+                .filter { it.isNotBlank() }
+                .toList()
+                .takeLast(MAX_DIAGNOSTIC_LOG_LINES)
+            preferences.edit().putString(KEY_DIAGNOSTIC_LOGS, retainedLines.joinToString("\n")).apply()
+        } catch (_: Exception) {
+        }
     }
 
     fun clearDiagnosticLogs() {

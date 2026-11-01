@@ -22,9 +22,9 @@ class GitHubUpdateChecker(private val context: Context) {
 
     fun installedVersionName(): String =
         try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.31"
-        } catch (_: PackageManager.NameNotFoundException) {
-            "1.31"
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.32"
+        } catch (_: Exception) {
+            "1.32"
         }
 
     fun checkForUpdates(onResult: (UpdateState) -> Unit) {

@@ -42,8 +42,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyModernSystemBars()
-        requestNotificationPermissionIfNeeded()
         render()
+        requestNotificationPermissionIfNeeded()
         checkUpdatesSilently()
     }
 
@@ -57,8 +57,11 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
-        setContentView(createContent())
-        isViewBuilt = true
+        try {
+            setContentView(createContent())
+            isViewBuilt = true
+        } catch (_: Exception) {
+        }
     }
 
     private fun createContent(): ScrollView {
@@ -152,11 +155,14 @@ class MainActivity : Activity() {
 
     private fun updateHeroStatus() {
         if (!isViewBuilt) return
-        val isServiceEnabled = isAccessibilityServiceEnabled()
-        val isAutomationEnabled = preferences.isAutomationEnabled
-        val activeProviders = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
-        val totalProviders = StreamingProvider.entries.size
-        heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
+        try {
+            val isServiceEnabled = isAccessibilityServiceEnabled()
+            val isAutomationEnabled = preferences.isAutomationEnabled
+            val activeProviders = StreamingProvider.entries.count { preferences.isProviderEnabled(it) }
+            val totalProviders = StreamingProvider.entries.size
+            heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
+        } catch (_: Exception) {
+        }
     }
 
     private fun createSectionHeader(title: String, subtitle: String): LinearLayout =
@@ -210,106 +216,141 @@ class MainActivity : Activity() {
         }
 
     private fun isAccessibilityServiceEnabled(): Boolean {
-        val expected = ComponentName(this, AntSkipAccessibilityService::class.java).flattenToString()
-        val enabled = Settings.Secure.getString(
-            contentResolver,
-            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
-        ).orEmpty()
-        return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+        return try {
+            val expected = ComponentName(this, AntSkipAccessibilityService::class.java).flattenToString()
+            val enabled = Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            ).orEmpty()
+            enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun isAppInstalled(provider: StreamingProvider): Boolean =
-        provider.allPackages.any { pkg ->
-            packageManager.getLaunchIntentForPackage(pkg) != null
+        try {
+            provider.allPackages.any { pkg ->
+                packageManager.getLaunchIntentForPackage(pkg) != null
+            }
+        } catch (_: Exception) {
+            false
         }
 
     private fun openAccessibilitySettings() {
-        startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        try {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        } catch (e: Exception) {
+            Toast.makeText(this, "Abra as Configurações > Acessibilidade do Android", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun openAppInfo() {
-        startActivity(
-            Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.fromParts("package", packageName, null),
-            ),
-        )
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", packageName, null),
+                ),
+            )
+        } catch (_: Exception) {
+            openAccessibilitySettings()
+        }
     }
 
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+            try {
+                if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+                }
+            } catch (_: Exception) {
             }
         }
     }
 
     private fun applyModernSystemBars() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.insetsController?.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
+            }
+        } catch (_: Exception) {
         }
     }
 
     private fun ScrollView.applySystemBarPadding() {
         setOnApplyWindowInsetsListener { view, insets ->
-            val topInset: Int
-            val bottomInset: Int
-            val leftInset: Int
-            val rightInset: Int
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                topInset = bars.top
-                bottomInset = bars.bottom
-                leftInset = bars.left
-                rightInset = bars.right
-            } else {
-                @Suppress("DEPRECATION")
-                run {
-                    topInset = insets.systemWindowInsetTop
-                    bottomInset = insets.systemWindowInsetBottom
-                    leftInset = insets.systemWindowInsetLeft
-                    rightInset = insets.systemWindowInsetRight
+            try {
+                var topInset = 0
+                var bottomInset = 0
+                var leftInset = 0
+                var rightInset = 0
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                    topInset = bars.top
+                    bottomInset = bars.bottom
+                    leftInset = bars.left
+                    rightInset = bars.right
+                } else {
+                    @Suppress("DEPRECATION")
+                    run {
+                        topInset = insets.systemWindowInsetTop
+                        bottomInset = insets.systemWindowInsetBottom
+                        leftInset = insets.systemWindowInsetLeft
+                        rightInset = insets.systemWindowInsetRight
+                    }
                 }
+                view.setPadding(
+                    leftInset,
+                    topInset + AntTheme.dp(this@MainActivity, 12),
+                    rightInset,
+                    bottomInset + AntTheme.dp(this@MainActivity, 16),
+                )
+            } catch (_: Exception) {
             }
-            view.setPadding(
-                leftInset,
-                topInset + AntTheme.dp(this@MainActivity, 12),
-                rightInset,
-                bottomInset + AntTheme.dp(this@MainActivity, 16),
-            )
             insets
         }
-        requestApplyInsets()
+        try {
+            requestApplyInsets()
+        } catch (_: Exception) {
+        }
     }
 
     private fun checkUpdatesSilently() {
-        updater.checkForUpdates { state ->
-            updateState = state
+        try {
+            updater.checkForUpdates { state ->
+                updateState = state
+            }
+        } catch (_: Exception) {
         }
     }
 
     private fun showUpdateDialog() {
-        updater.checkForUpdates { state ->
-            updateState = state
-            when (state) {
-                is UpdateState.UpdateAvailable -> {
-                    AlertDialog.Builder(this)
-                        .setTitle("Nova Versão Disponível: v${state.latestVersion}")
-                        .setMessage("Uma nova atualização do AntSKIP foi encontrada no GitHub.")
-                        .setPositiveButton("Baixar") { _, _ ->
-                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.releaseUrl)))
-                        }
-                        .setNegativeButton("Mais tarde", null)
-                        .show()
+        try {
+            updater.checkForUpdates { state ->
+                updateState = state
+                when (state) {
+                    is UpdateState.UpdateAvailable -> {
+                        AlertDialog.Builder(this)
+                            .setTitle("Nova Versão Disponível: v${state.latestVersion}")
+                            .setMessage("Uma nova atualização do AntSKIP foi encontrada no GitHub.")
+                            .setPositiveButton("Baixar") { _, _ ->
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(state.releaseUrl)))
+                            }
+                            .setNegativeButton("Mais tarde", null)
+                            .show()
+                    }
+                    is UpdateState.UpToDate -> {
+                        Toast.makeText(this, "AntSKIP está atualizado (v${state.latestVersion})!", Toast.LENGTH_SHORT).show()
+                    }
+                    is UpdateState.CheckFailed -> {
+                        Toast.makeText(this, "Não foi possível verificar atualizações: ${state.message}", Toast.LENGTH_SHORT).show()
+                    }
+                    else -> Unit
                 }
-                is UpdateState.UpToDate -> {
-                    Toast.makeText(this, "AntSKIP está atualizado (v${state.latestVersion})!", Toast.LENGTH_SHORT).show()
-                }
-                is UpdateState.CheckFailed -> {
-                    Toast.makeText(this, "Não foi possível verificar atualizações: ${state.message}", Toast.LENGTH_SHORT).show()
-                }
-                else -> Unit
             }
+        } catch (_: Exception) {
         }
     }
 }
