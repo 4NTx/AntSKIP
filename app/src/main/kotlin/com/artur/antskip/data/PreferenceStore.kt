@@ -180,13 +180,15 @@ class PreferenceStore(context: Context) {
     val scheduleDays: Set<Int>
         get() = try {
             val raw = preferences.getStringSet(KEY_SCHEDULE_DAYS, null)
-            raw?.mapNotNull { it.toIntOrNull() }?.toSet() ?: setOf(1, 2, 3, 4, 5, 6, 7)
+            val parsed = raw?.mapNotNull { it.toIntOrNull() }?.toSet()
+            if (parsed.isNullOrEmpty()) setOf(1, 2, 3, 4, 5, 6, 7) else parsed
         } catch (_: Exception) {
             setOf(1, 2, 3, 4, 5, 6, 7)
         }
 
     fun setScheduleDays(days: Set<Int>) {
-        val raw = days.map { it.toString() }.toSet()
+        val safeDays = if (days.isEmpty()) setOf(1, 2, 3, 4, 5, 6, 7) else days
+        val raw = safeDays.map { it.toString() }.toSet()
         preferences.edit().putStringSet(KEY_SCHEDULE_DAYS, raw).apply()
     }
 
@@ -254,13 +256,15 @@ class PreferenceStore(context: Context) {
     val sleepRoutineDays: Set<Int>
         get() = try {
             val raw = preferences.getStringSet(KEY_SLEEP_ROUTINE_DAYS, null)
-            raw?.mapNotNull { it.toIntOrNull() }?.toSet() ?: setOf(1, 2, 3, 4, 5, 6, 7)
+            val parsed = raw?.mapNotNull { it.toIntOrNull() }?.toSet()
+            if (parsed.isNullOrEmpty()) setOf(1, 2, 3, 4, 5, 6, 7) else parsed
         } catch (_: Exception) {
             setOf(1, 2, 3, 4, 5, 6, 7)
         }
 
     fun setSleepRoutineDays(days: Set<Int>) {
-        val raw = days.map { it.toString() }.toSet()
+        val safeDays = if (days.isEmpty()) setOf(1, 2, 3, 4, 5, 6, 7) else days
+        val raw = safeDays.map { it.toString() }.toSet()
         preferences.edit().putStringSet(KEY_SLEEP_ROUTINE_DAYS, raw).apply()
     }
 

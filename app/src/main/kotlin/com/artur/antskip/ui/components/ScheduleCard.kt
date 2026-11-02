@@ -162,6 +162,14 @@ class ScheduleCard(
                 isChecked = preferences.isScheduleEnabled
                 setOnCheckedChangeListener { _, checked ->
                     preferences.setScheduleEnabled(checked)
+                    if (checked && (preferences.schedulePreset == "ALWAYS" || preferences.schedulePreset.isBlank())) {
+                        preferences.setSchedulePreset("NIGHT")
+                        preferences.setScheduleStartHour(22)
+                        preferences.setScheduleStartMinute(0)
+                        preferences.setScheduleEndHour(6)
+                        preferences.setScheduleEndMinute(0)
+                        preferences.setScheduleDays(setOf(1, 2, 3, 4, 5, 6, 7))
+                    }
                     onRefresh()
                 }
             }
@@ -275,6 +283,7 @@ class ScheduleCard(
                         setOnClickListener {
                             TimePickerDialog(
                                 context,
+                                android.R.style.Theme_DeviceDefault_Dialog,
                                 { _, hour, minute ->
                                     preferences.setScheduleStartHour(hour)
                                     preferences.setScheduleStartMinute(minute)
@@ -308,6 +317,7 @@ class ScheduleCard(
                         setOnClickListener {
                             TimePickerDialog(
                                 context,
+                                android.R.style.Theme_DeviceDefault_Dialog,
                                 { _, hour, minute ->
                                     preferences.setScheduleEndHour(hour)
                                     preferences.setScheduleEndMinute(minute)
@@ -384,10 +394,31 @@ class ScheduleCard(
                     daysRow.addView(dayBtn)
                 }
 
+                val summaryLabel = TextView(context).apply {
+                    val start = "%02d:%02d".format(preferences.scheduleStartHour, preferences.scheduleStartMinute)
+                    val end = "%02d:%02d".format(preferences.scheduleEndHour, preferences.scheduleEndMinute)
+                    val days = preferences.scheduleDays
+                    val daysDesc = when {
+                        days.size == 7 -> "Todos os dias"
+                        days == setOf(2, 3, 4, 5, 6) -> "Segunda a sexta"
+                        days == setOf(1, 7) -> "Fins de semana"
+                        else -> "${days.size} dias na semana"
+                    }
+                    val isOvernight = preferences.scheduleStartHour > preferences.scheduleEndHour ||
+                        (preferences.scheduleStartHour == preferences.scheduleEndHour && preferences.scheduleStartMinute > preferences.scheduleEndMinute)
+                    val overnightText = if (isOvernight) " (vira a noite)" else ""
+                    text = "Resumo: $daysDesc • $start até $end$overnightText"
+                    setTextColor(AntTheme.ACCENT_PRIMARY)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    typeface = Typeface.DEFAULT_BOLD
+                    setPadding(0, AntTheme.dp(context, 10), 0, 0)
+                }
+
                 addView(titleRow)
                 addView(timePickersRow)
                 addView(daysTitle)
                 addView(daysRow)
+                addView(summaryLabel)
             }
             container.addView(timeBox)
         }
@@ -462,6 +493,7 @@ class ScheduleCard(
                     setOnClickListener {
                         TimePickerDialog(
                             context,
+                            android.R.style.Theme_DeviceDefault_Dialog,
                             { _, hour, minute ->
                                 preferences.setSleepRoutineHour(hour)
                                 preferences.setSleepRoutineMinute(minute)

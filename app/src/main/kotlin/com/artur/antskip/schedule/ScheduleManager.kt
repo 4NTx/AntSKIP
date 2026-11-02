@@ -34,7 +34,7 @@ object ScheduleManager {
             set(Calendar.MINUTE, preferences.sleepRoutineMinute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-            if (timeInMillis <= System.currentTimeMillis()) {
+            if (timeInMillis <= System.currentTimeMillis() + 1000L) {
                 add(Calendar.DAY_OF_YEAR, 1)
             }
         }
@@ -54,11 +54,19 @@ object ScheduleManager {
                 )
             }
         } catch (_: SecurityException) {
-            alarmManager.set(
-                AlarmManager.RTC_WAKEUP,
-                targetCalendar.timeInMillis,
-                pendingIntent,
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    targetCalendar.timeInMillis,
+                    pendingIntent,
+                )
+            } else {
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    targetCalendar.timeInMillis,
+                    pendingIntent,
+                )
+            }
         } catch (_: Exception) {
         }
     }
