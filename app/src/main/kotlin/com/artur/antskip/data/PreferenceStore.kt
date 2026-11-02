@@ -78,9 +78,9 @@ class PreferenceStore(context: Context) {
 
     val isSleepTimerShakeToExtendEnabled: Boolean
         get() = try {
-            preferences.getBoolean(KEY_SLEEP_TIMER_SHAKE_TO_EXTEND, true)
+            preferences.getBoolean(KEY_SLEEP_TIMER_SHAKE_TO_EXTEND, false)
         } catch (_: Exception) {
-            true
+            false
         }
 
     fun setSleepTimerShakeToExtendEnabled(enabled: Boolean) {
@@ -231,6 +231,17 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(KEY_SLEEP_ROUTINE_ENABLED, enabled).apply()
     }
 
+    val sleepRoutinePreset: String
+        get() = try {
+            preferences.getString(KEY_SLEEP_ROUTINE_PRESET, "EVERYDAY") ?: "EVERYDAY"
+        } catch (_: Exception) {
+            "EVERYDAY"
+        }
+
+    fun setSleepRoutinePreset(preset: String) {
+        preferences.edit().putString(KEY_SLEEP_ROUTINE_PRESET, preset).apply()
+    }
+
     val sleepRoutineHour: Int
         get() = try {
             preferences.getInt(KEY_SLEEP_ROUTINE_HOUR, 23)
@@ -296,6 +307,7 @@ class PreferenceStore(context: Context) {
         const val KEY_SCHEDULE_END_MINUTE = "schedule_end_minute"
         const val KEY_SCHEDULE_DAYS = "schedule_days"
         const val KEY_SLEEP_ROUTINE_ENABLED = "sleep_routine_enabled"
+        const val KEY_SLEEP_ROUTINE_PRESET = "sleep_routine_preset"
         const val KEY_SLEEP_ROUTINE_HOUR = "sleep_routine_hour"
         const val KEY_SLEEP_ROUTINE_MINUTE = "sleep_routine_minute"
         const val KEY_SLEEP_ROUTINE_DAYS = "sleep_routine_days"

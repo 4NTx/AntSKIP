@@ -43,9 +43,14 @@ class SleepTimerService : Service() {
     // Audio Fade-out state
     private var originalMusicVolume = -1
 
-    // Shake to Extend state
+    // Shake to Extend state (only active when remaining <= 5 min)
     private var sensorManager: SensorManager? = null
     private var lastShakeTime = 0L
+    private var lastShakeAccelX = 0f
+    private var lastShakeAccelY = 0f
+    private var lastShakeAccelZ = 0f
+    private var shakeOscillationCount = 0
+    private var lastShakeDirectionTime = 0L
 
     private val openAppIntent by lazy {
         PendingIntent.getActivity(
@@ -155,24 +160,42 @@ class SleepTimerService : Service() {
     private val shakeListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent?) {
             if (event?.sensor?.type != Sensor.TYPE_ACCELEROMETER) return
+            // CRITICAL SAFEGUARD: Never extend if more than 5 minutes remain!
+            if (remainingSeconds > 5 * 60L) return
+
+            val now = SystemClock.elapsedRealtime()
             val x = event.values[0]
             val y = event.values[1]
             val z = event.values[2]
-            val gX = x / SensorManager.GRAVITY_EARTH
-            val gY = y / SensorManager.GRAVITY_EARTH
-            val gZ = z / SensorManager.GRAVITY_EARTH
-            val gForce = sqrt((gX * gX + gY * gY + gZ * gZ).toDouble()).toFloat()
-            if (gForce > 2.2f) {
-                val now = SystemClock.elapsedRealtime()
-                if (now - lastShakeTime > 4000L) {
-                    lastShakeTime = now
-                    Handler(Looper.getMainLooper()).post {
-                        if (isRunning) {
-                            adjustTimer(10 * 60L)
-                            vibrateFeedback()
+
+            val deltaX = abs(lastShakeAccelX - x)
+            val deltaY = abs(lastShakeAccelY - y)
+            val deltaZ = abs(lastShakeAccelZ - z)
+
+            lastShakeAccelX = x
+            lastShakeAccelY = y
+            lastShakeAccelZ = z
+
+            val speed = deltaX + deltaY + deltaZ
+            // Must be an intentional vigorous shake (speed > 16 m/s^2)
+            if (speed > 16f) {
+                if (now - lastShakeDirectionTime < 600L) {
+                    shakeOscillationCount++
+                    // Require at least 3 distinct direction reversals within 600ms, debounced by 30 seconds
+                    if (shakeOscillationCount >= 3 && now - lastShakeTime > 30_000L) {
+                        lastShakeTime = now
+                        shakeOscillationCount = 0
+                        Handler(Looper.getMainLooper()).post {
+                            if (isRunning && remainingSeconds <= 5 * 60L) {
+                                adjustTimer(10 * 60L)
+                                vibrateFeedback()
+                            }
                         }
                     }
+                } else {
+                    shakeOscillationCount = 1
                 }
+                lastShakeDirectionTime = now
             }
         }
 
@@ -479,9 +502,14 @@ class SleepTimerService : Service() {
         var onFinishListener: (() -> Unit)? = null
 
         fun formatSeconds(totalSec: Long): String {
-            val min = totalSec / 60
+            val h = totalSec / 3600
+            val min = (totalSec % 3600) / 60
             val sec = totalSec % 60
-            return "%02d:%02d".format(min, sec)
+            return if (h > 0) {
+                "%d:%02d:%02d".format(h, min, sec)
+            } else {
+                "%02d:%02d".format(min, sec)
+            }
         }
     }
 }

@@ -67,7 +67,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
             provider = StreamingProvider.fromPackageName(rootPackage) ?: return
         }
 
-        if (!preferences.isAutomationEnabled || !preferences.isScheduleActiveNow() || !preferences.isProviderEnabled(provider)) {
+        if (!preferences.isAutomationEnabled || !preferences.isProviderEnabled(provider)) {
             return
         }
 

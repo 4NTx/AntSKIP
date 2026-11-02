@@ -51,7 +51,15 @@ class SleepTimerTileService : TileService() {
             tile.state = Tile.STATE_INACTIVE
             tile.label = "Temporizador"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "${preferences.sleepTimerDurationMinutes} min"
+                val totalMin = preferences.sleepTimerDurationMinutes
+                val h = totalMin / 60
+                val m = totalMin % 60
+                val formatted = when {
+                    h > 0 && m > 0 -> "${h}h ${m}m"
+                    h > 0 -> "${h}h"
+                    else -> "$totalMin min"
+                }
+                tile.subtitle = formatted
             }
         }
         tile.updateTile()

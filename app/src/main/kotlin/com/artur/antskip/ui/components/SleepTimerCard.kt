@@ -1,6 +1,7 @@
 package com.artur.antskip.ui.components
 
 import android.animation.LayoutTransition
+import android.app.TimePickerDialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
@@ -11,12 +12,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.OvershootInterpolator
 import android.widget.Button
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
 import com.artur.antskip.data.PreferenceStore
+import com.artur.antskip.schedule.ScheduleManager
 import com.artur.antskip.service.SleepTimerService
 import com.artur.antskip.ui.theme.AntTheme
+import java.util.Calendar
 
 class SleepTimerCard(
     private val context: Context,
@@ -266,8 +270,38 @@ class SleepTimerCard(
     }
 
     private fun renderIdleState(container: LinearLayout, onRefresh: () -> Unit) {
-        val presets = listOf(10, 15, 30, 45, 60)
+        val presets = listOf(15, 30, 45, 60, 90, 120)
         val chipViews = mutableListOf<TextView>()
+
+        fun formatDurationLabel(min: Int): String {
+            val h = min / 60
+            val m = min % 60
+            return when {
+                h > 0 && m > 0 -> "${h}h ${m}m"
+                h > 0 -> "${h} hora${if (h > 1) "s" else ""}"
+                else -> "$min min"
+            }
+        }
+
+        fun formatDurationShort(min: Int): String {
+            val h = min / 60
+            val m = min % 60
+            return when {
+                h > 0 && m > 0 -> "${h}h ${m}m"
+                h > 0 -> "${h}h"
+                else -> "$min min"
+            }
+        }
+
+        fun formatChipLabel(min: Int): String {
+            val h = min / 60
+            val m = min % 60
+            return when {
+                h > 0 && m > 0 -> "${h}h${m}"
+                h > 0 -> "${h}h"
+                else -> "${m}m"
+            }
+        }
 
         // Stepper: [- 5m]  30 min  [+ 5m]
         val stepperRow = LinearLayout(context).apply {
@@ -281,7 +315,7 @@ class SleepTimerCard(
         }
 
         val startBtn = Button(context).apply {
-            text = "Iniciar Temporizador ($selectedMinutes min)"
+            text = "Iniciar Temporizador (${formatDurationShort(selectedMinutes)})"
             setTextColor(AntTheme.TEXT_PRIMARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
             typeface = Typeface.DEFAULT_BOLD
@@ -302,7 +336,7 @@ class SleepTimerCard(
         }
 
         val timeLabel = TextView(context).apply {
-            text = "$selectedMinutes min"
+            text = formatDurationLabel(selectedMinutes)
             setTextColor(AntTheme.TEXT_PRIMARY)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
             typeface = Typeface.DEFAULT_BOLD
@@ -313,11 +347,11 @@ class SleepTimerCard(
         fun updateSelectedTime(min: Int) {
             selectedMinutes = min.coerceIn(1, 180)
             preferences.setSleepTimerDurationMinutes(selectedMinutes)
-            timeLabel.text = "$selectedMinutes min"
+            timeLabel.text = formatDurationLabel(selectedMinutes)
             timeLabel.scaleX = 0.85f
             timeLabel.scaleY = 0.85f
             timeLabel.animate().scaleX(1f).scaleY(1f).setDuration(120).setInterpolator(OvershootInterpolator(1.5f)).start()
-            startBtn.text = "Iniciar Temporizador ($selectedMinutes min)"
+            startBtn.text = "Iniciar Temporizador (${formatDurationShort(selectedMinutes)})"
 
             chipViews.forEachIndexed { idx, cv ->
                 val sel = presets.getOrNull(idx) == selectedMinutes
@@ -367,7 +401,7 @@ class SleepTimerCard(
         presets.forEach { min ->
             val isSelected = min == selectedMinutes
             val chip = TextView(context).apply {
-                text = "${min}m"
+                text = formatChipLabel(min)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
@@ -498,7 +532,7 @@ class SleepTimerCard(
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
                 }
                 val sub = TextView(context).apply {
-                    text = "Chacoalhe o celular se ainda estiver acordado"
+                    text = "Chacoalhe o celular nos últimos 5 min se ainda estiver acordado"
                     setTextColor(AntTheme.TEXT_MUTED)
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
                 }
@@ -518,6 +552,49 @@ class SleepTimerCard(
             setOnClickListener { sw.toggle() }
         }
 
+        // Toggle: Iniciar automaticamente em horário programado
+        val autoStartRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, AntTheme.dp(context, 6), 0, AntTheme.dp(context, 6))
+
+            val labelLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+
+                val label = TextView(context).apply {
+                    text = "Iniciar sozinho em horário programado"
+                    setTextColor(AntTheme.TEXT_PRIMARY)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                }
+                val formattedTime = "%02d:%02d".format(preferences.sleepRoutineHour, preferences.sleepRoutineMinute)
+                val sub = TextView(context).apply {
+                    text = if (preferences.isSleepRoutineEnabled) {
+                        "Ativo: todo dia às $formattedTime"
+                    } else {
+                        "Inicia o timer de sono automaticamente sem precisar abrir o app"
+                    }
+                    setTextColor(AntTheme.TEXT_MUTED)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                }
+                addView(label)
+                addView(sub)
+            }
+
+            val sw = Switch(context).apply {
+                isChecked = preferences.isSleepRoutineEnabled
+                setOnCheckedChangeListener { _, checked ->
+                    preferences.setSleepRoutineEnabled(checked)
+                    ScheduleManager.syncSleepRoutineAlarm(context, preferences)
+                    onRefresh()
+                }
+            }
+
+            addView(labelLayout)
+            addView(sw)
+            setOnClickListener { sw.toggle() }
+        }
+
         optionsLayout.addView(pauseRow)
         optionsLayout.addView(AntTheme.divider(context))
         optionsLayout.addView(screenRow)
@@ -525,6 +602,180 @@ class SleepTimerCard(
         optionsLayout.addView(fadeRow)
         optionsLayout.addView(AntTheme.divider(context))
         optionsLayout.addView(shakeRow)
+        optionsLayout.addView(AntTheme.divider(context))
+        optionsLayout.addView(autoStartRow)
+
+        if (preferences.isSleepRoutineEnabled) {
+            // Container for filters, time, days
+            val scheduleDetailLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, AntTheme.dp(context, 6), 0, 0)
+                layoutTransition = LayoutTransition().apply {
+                    enableTransitionType(LayoutTransition.CHANGING)
+                    setDuration(160)
+                }
+            }
+
+            // Quick filter chips
+            val presetsScroll = HorizontalScrollView(context).apply {
+                isHorizontalScrollBarEnabled = false
+                overScrollMode = View.OVER_SCROLL_NEVER
+                val pParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                pParams.topMargin = AntTheme.dp(context, 6)
+                pParams.bottomMargin = AntTheme.dp(context, 8)
+                layoutParams = pParams
+            }
+
+            val presetsRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+            }
+
+            data class PresetItem(val id: String, val label: String, val hour: Int, val minute: Int, val days: Set<Int>)
+
+            val presetList = listOf(
+                PresetItem("EVERYDAY", "Todo dia (23:30)", 23, 30, setOf(1, 2, 3, 4, 5, 6, 7)),
+                PresetItem("WEEKDAYS", "Dias Úteis (Seg-Sex)", 23, 0, setOf(2, 3, 4, 5, 6)),
+                PresetItem("WEEKENDS", "Fins de Semana (Sáb-Dom)", 0, 30, setOf(1, 7)),
+                PresetItem("CUSTOM", "Personalizado", preferences.sleepRoutineHour, preferences.sleepRoutineMinute, preferences.sleepRoutineDays),
+            )
+
+            val currentPreset = preferences.sleepRoutinePreset
+
+            presetList.forEach { preset ->
+                val isSelected = currentPreset == preset.id
+                val chip = TextView(context).apply {
+                    text = preset.label
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    typeface = Typeface.DEFAULT_BOLD
+                    setPadding(AntTheme.dp(context, 12), AntTheme.dp(context, 6), AntTheme.dp(context, 12), AntTheme.dp(context, 6))
+                    setTextColor(if (isSelected) AntTheme.TEXT_PRIMARY else AntTheme.TEXT_SECONDARY)
+                    background = if (isSelected) {
+                        AntTheme.rounded(AntTheme.ACCENT_PRIMARY, 8f, null, 0, context)
+                    } else {
+                        AntTheme.rounded(AntTheme.BG_CANVAS, 8f, AntTheme.CARD_BORDER, 1, context)
+                    }
+                    val cParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    cParams.marginEnd = AntTheme.dp(context, 6)
+                    layoutParams = cParams
+                    AntTheme.addPressFeedback(this)
+                    setOnClickListener {
+                        preferences.setSleepRoutinePreset(preset.id)
+                        if (preset.id != "CUSTOM") {
+                            preferences.setSleepRoutineHour(preset.hour)
+                            preferences.setSleepRoutineMinute(preset.minute)
+                            preferences.setSleepRoutineDays(preset.days)
+                        }
+                        ScheduleManager.syncSleepRoutineAlarm(context, preferences)
+                        onRefresh()
+                    }
+                }
+                presetsRow.addView(chip)
+            }
+            presetsScroll.addView(presetsRow)
+            scheduleDetailLayout.addView(presetsScroll)
+
+            // Time Picker Button
+            val formattedTime = "%02d:%02d".format(preferences.sleepRoutineHour, preferences.sleepRoutineMinute)
+            val timePickerBtn = Button(context).apply {
+                text = "Horário de início: $formattedTime  (Toque para mudar)"
+                setTextColor(AntTheme.TEXT_PRIMARY)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                typeface = Typeface.DEFAULT_BOLD
+                background = AntTheme.rippleButton(AntTheme.CARD_SURFACE, radiusDp = 8f, context = context)
+                val bParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AntTheme.dp(context, 38))
+                bParams.bottomMargin = AntTheme.dp(context, 8)
+                layoutParams = bParams
+                AntTheme.addPressFeedback(this)
+                setOnClickListener {
+                    TimePickerDialog(
+                        context,
+                        android.R.style.Theme_DeviceDefault_Dialog,
+                        { _, hour, minute ->
+                            preferences.setSleepRoutineHour(hour)
+                            preferences.setSleepRoutineMinute(minute)
+                            preferences.setSleepRoutinePreset("CUSTOM")
+                            ScheduleManager.syncSleepRoutineAlarm(context, preferences)
+                            onRefresh()
+                        },
+                        preferences.sleepRoutineHour,
+                        preferences.sleepRoutineMinute,
+                        true,
+                    ).show()
+                }
+            }
+            scheduleDetailLayout.addView(timePickerBtn)
+
+            // Day Selector Chips
+            val daysRow = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+
+            val dayNames = listOf(
+                Calendar.SUNDAY to "D",
+                Calendar.MONDAY to "S",
+                Calendar.TUESDAY to "T",
+                Calendar.WEDNESDAY to "Q",
+                Calendar.THURSDAY to "Q",
+                Calendar.FRIDAY to "S",
+                Calendar.SATURDAY to "S",
+            )
+
+            val selectedDays = preferences.sleepRoutineDays.toMutableSet()
+
+            dayNames.forEach { (calDay, dayLetter) ->
+                val isDaySelected = calDay in selectedDays
+                val dayBtn = TextView(context).apply {
+                    text = dayLetter
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                    typeface = Typeface.DEFAULT_BOLD
+                    gravity = Gravity.CENTER
+                    setTextColor(if (isDaySelected) AntTheme.TEXT_PRIMARY else AntTheme.TEXT_MUTED)
+                    background = if (isDaySelected) {
+                        AntTheme.rounded(AntTheme.ACCENT_PRIMARY, 8f, null, 0, context)
+                    } else {
+                        AntTheme.rounded(AntTheme.CARD_SURFACE, 8f, AntTheme.CARD_BORDER, 1, context)
+                    }
+                    val dParams = LinearLayout.LayoutParams(0, AntTheme.dp(context, 32), 1f)
+                    dParams.marginEnd = AntTheme.dp(context, 4)
+                    layoutParams = dParams
+                    AntTheme.addPressFeedback(this)
+                    setOnClickListener {
+                        if (isDaySelected && selectedDays.size > 1) {
+                            selectedDays.remove(calDay)
+                        } else {
+                            selectedDays.add(calDay)
+                        }
+                        preferences.setSleepRoutineDays(selectedDays)
+                        preferences.setSleepRoutinePreset("CUSTOM")
+                        ScheduleManager.syncSleepRoutineAlarm(context, preferences)
+                        onRefresh()
+                    }
+                }
+                daysRow.addView(dayBtn)
+            }
+            scheduleDetailLayout.addView(daysRow)
+
+            // Summary Label
+            val summaryLabel = TextView(context).apply {
+                val days = preferences.sleepRoutineDays
+                val daysDesc = when {
+                    days.size == 7 -> "Todos os dias"
+                    days == setOf(2, 3, 4, 5, 6) -> "Segunda a sexta"
+                    days == setOf(1, 7) -> "Fins de semana"
+                    else -> "${days.size} dias na semana"
+                }
+                val durationStr = formatDurationShort(selectedMinutes)
+                text = "Iniciará sozinho às $formattedTime • $daysDesc ($durationStr)"
+                setTextColor(AntTheme.ACCENT_PRIMARY)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, AntTheme.dp(context, 8), 0, 0)
+            }
+            scheduleDetailLayout.addView(summaryLabel)
+
+            optionsLayout.addView(scheduleDetailLayout)
+        }
 
         val note = TextView(context).apply {
             text = "Alarmes e despertadores nunca são silenciados ou pausados."

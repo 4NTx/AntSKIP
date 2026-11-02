@@ -32,7 +32,6 @@ import com.artur.antskip.ui.components.ActionToggleCard
 import com.artur.antskip.ui.components.HeroStatusCard
 import com.artur.antskip.ui.components.ProviderCard
 import com.artur.antskip.ui.components.QuickToolsSection
-import com.artur.antskip.ui.components.ScheduleCard
 import com.artur.antskip.ui.components.SleepTimerCard
 import com.artur.antskip.ui.dialogs.DiagnosticsDialog
 import com.artur.antskip.ui.dialogs.SimulatorDialog
@@ -166,7 +165,7 @@ class MainActivity : Activity() {
         )
         rootLayout.addView(heroView)
 
-        // 3. Sleep Timer Card
+        // 3. Sleep Timer Card (com início manual e agendamento automático)
         val sleepTimerCard = SleepTimerCard(
             context = this,
             preferences = preferences,
@@ -174,15 +173,7 @@ class MainActivity : Activity() {
         )
         rootLayout.addView(sleepTimerCard.createView())
 
-        // 4. Schedule Card (Ativação por Horário / Filtros)
-        val scheduleCard = ScheduleCard(
-            context = this,
-            preferences = preferences,
-            onStateChanged = { updateStatus() },
-        )
-        rootLayout.addView(scheduleCard.createView())
-
-        // 5. Section: Aplicativos (Grouped Card)
+        // 4. Section: Aplicativos (Grouped Card)
         rootLayout.addView(createSectionTitle("APLICATIVOS SUPORTADOS"))
         val providersGroup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -343,8 +334,6 @@ class MainActivity : Activity() {
             headerStatusBadge.scaleY = 1f
             headerStatusBadge.alpha = 1f
 
-            val isScheduleActive = preferences.isScheduleActiveNow()
-
             if (!isServiceEnabled) {
                 headerStatusBadge.text = "Desativado"
                 headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
@@ -353,10 +342,6 @@ class MainActivity : Activity() {
                 headerStatusBadge.text = "Pausado"
                 headerStatusBadge.setTextColor(AntTheme.TEXT_MUTED)
                 headerStatusBadge.background = AntTheme.rounded(AntTheme.CARD_SURFACE_HOVER, 8f, AntTheme.CARD_BORDER, 1, this)
-            } else if (!isScheduleActive) {
-                headerStatusBadge.text = "Fora do Horário"
-                headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
-                headerStatusBadge.background = AntTheme.rounded(AntTheme.WARNING_BG, 8f, AntTheme.WARNING_BORDER, 1, this)
             } else {
                 headerStatusBadge.text = "Ativo"
                 headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)
