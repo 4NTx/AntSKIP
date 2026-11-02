@@ -83,6 +83,7 @@ class SkipMatcher(
             StreamingProvider.MAX -> phraseBank.match(text)
             StreamingProvider.DISNEY_PLUS -> phraseBank.match(text)
             StreamingProvider.YOUTUBE -> matchYouTubeAction(text)
+            StreamingProvider.GLOBOPLAY -> phraseBank.match(text)
         }
     }
 
@@ -95,7 +96,7 @@ class SkipMatcher(
 
     private fun matchByKnownViewId(viewId: String): SkipAction? =
         when {
-            viewId.contains("skip_intro") || viewId.contains("skip_opening") || viewId.contains("pular_abertura") || viewId.contains("skip_ad") -> SkipAction.INTRO
+            viewId.contains("skip_intro") || viewId.contains("skip_opening") || viewId.contains("pular_abertura") || viewId.contains("skip_ad") || viewId.contains("ad_skip") -> SkipAction.INTRO
             viewId.contains("skip_recap") || viewId.contains("pular_resumo") || viewId.contains("pular_recap") -> SkipAction.RECAP
             viewId.contains("skip_credits") || viewId.contains("pular_creditos") || viewId.contains("skip_ending") -> SkipAction.CREDITS
             viewId.contains("play_next_episode") || viewId.contains("proximo_episodio_btn") -> SkipAction.NEXT_EPISODE

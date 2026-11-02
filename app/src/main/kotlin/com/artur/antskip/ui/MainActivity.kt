@@ -18,18 +18,21 @@ import android.view.WindowInsetsController
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import com.artur.antskip.accessibility.AntSkipAccessibilityService
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.SkipAction
 import com.artur.antskip.domain.StreamingProvider
+import com.artur.antskip.service.SleepTimerService
 import com.artur.antskip.tile.AutoSkipTileService
 import com.artur.antskip.tile.SleepTimerTileService
 import com.artur.antskip.ui.components.ActionToggleCard
 import com.artur.antskip.ui.components.HeroStatusCard
 import com.artur.antskip.ui.components.ProviderCard
 import com.artur.antskip.ui.components.QuickToolsSection
+import com.artur.antskip.ui.components.ScheduleCard
 import com.artur.antskip.ui.components.SleepTimerCard
 import com.artur.antskip.ui.dialogs.DiagnosticsDialog
 import com.artur.antskip.ui.dialogs.SimulatorDialog
@@ -61,6 +64,12 @@ class MainActivity : Activity() {
         } else {
             render()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        SleepTimerService.onTickListener = null
+        SleepTimerService.onFinishListener = null
     }
 
     private fun render() {
@@ -165,7 +174,15 @@ class MainActivity : Activity() {
         )
         rootLayout.addView(sleepTimerCard.createView())
 
-        // 4. Section: Aplicativos (Grouped Card)
+        // 4. Schedule Card (Ativação por Horário / Filtros)
+        val scheduleCard = ScheduleCard(
+            context = this,
+            preferences = preferences,
+            onStateChanged = { updateStatus() },
+        )
+        rootLayout.addView(scheduleCard.createView())
+
+        // 5. Section: Aplicativos (Grouped Card)
         rootLayout.addView(createSectionTitle("APLICATIVOS SUPORTADOS"))
         val providersGroup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -191,7 +208,7 @@ class MainActivity : Activity() {
         }
         rootLayout.addView(providersGroup)
 
-        // 5. Section: Ações Automáticas (Grouped Card)
+        // 6. Section: Ações Automáticas (Grouped Card)
         rootLayout.addView(createSectionTitle("AÇÕES DE PULAR"))
         val actionsGroup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -213,6 +230,62 @@ class MainActivity : Activity() {
                     addView(AntTheme.divider(this@MainActivity))
                 }
             }
+
+            // Modo Silencioso / Toast de aviso
+            addView(AntTheme.divider(this@MainActivity))
+            val toastRow = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 12), AntTheme.dp(this@MainActivity, 16), AntTheme.dp(this@MainActivity, 12))
+
+                val badge = AntTheme.createBadge(
+                    context = this@MainActivity,
+                    text = "AVISO",
+                    bgColor = AntTheme.CARD_SURFACE_HOVER,
+                    textColor = AntTheme.TEXT_MUTED,
+                    sizeDp = 38,
+                    radiusDp = 10f,
+                    textSizeSp = 8.5f,
+                ).apply {
+                    val bParams = LinearLayout.LayoutParams(AntTheme.dp(this@MainActivity, 38), AntTheme.dp(this@MainActivity, 38))
+                    bParams.marginEnd = AntTheme.dp(this@MainActivity, 14)
+                    layoutParams = bParams
+                }
+
+                val textColumn = LinearLayout(this@MainActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+
+                    val titleView = TextView(this@MainActivity).apply {
+                        text = "Aviso na tela ao pular"
+                        setTextColor(AntTheme.TEXT_PRIMARY)
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                        typeface = android.graphics.Typeface.DEFAULT_BOLD
+                    }
+
+                    val subView = TextView(this@MainActivity).apply {
+                        text = "Exibe balão rápido (Toast) confirmando o pulo"
+                        setTextColor(AntTheme.TEXT_MUTED)
+                        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+                    }
+
+                    addView(titleView)
+                    addView(subView)
+                }
+
+                val sw = Switch(this@MainActivity).apply {
+                    isChecked = preferences.isToastNotificationEnabled
+                    setOnCheckedChangeListener { _, checked ->
+                        preferences.setToastNotificationEnabled(checked)
+                    }
+                }
+
+                addView(badge)
+                addView(textColumn)
+                addView(sw)
+                setOnClickListener { sw.toggle() }
+            }
+            addView(toastRow)
         }
         rootLayout.addView(actionsGroup)
 
@@ -270,6 +343,8 @@ class MainActivity : Activity() {
             headerStatusBadge.scaleY = 1f
             headerStatusBadge.alpha = 1f
 
+            val isScheduleActive = preferences.isScheduleActiveNow()
+
             if (!isServiceEnabled) {
                 headerStatusBadge.text = "Desativado"
                 headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
@@ -278,6 +353,10 @@ class MainActivity : Activity() {
                 headerStatusBadge.text = "Pausado"
                 headerStatusBadge.setTextColor(AntTheme.TEXT_MUTED)
                 headerStatusBadge.background = AntTheme.rounded(AntTheme.CARD_SURFACE_HOVER, 8f, AntTheme.CARD_BORDER, 1, this)
+            } else if (!isScheduleActive) {
+                headerStatusBadge.text = "Fora do Horário"
+                headerStatusBadge.setTextColor(AntTheme.WARNING_TEXT)
+                headerStatusBadge.background = AntTheme.rounded(AntTheme.WARNING_BG, 8f, AntTheme.WARNING_BORDER, 1, this)
             } else {
                 headerStatusBadge.text = "Ativo"
                 headerStatusBadge.setTextColor(AntTheme.SUCCESS_TEXT)

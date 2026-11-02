@@ -67,7 +67,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
             provider = StreamingProvider.fromPackageName(rootPackage) ?: return
         }
 
-        if (!preferences.isAutomationEnabled || !preferences.isProviderEnabled(provider)) {
+        if (!preferences.isAutomationEnabled || !preferences.isScheduleActiveNow() || !preferences.isProviderEnabled(provider)) {
             return
         }
 
@@ -94,6 +94,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     private fun showSkipToast(action: SkipAction) {
+        if (!preferences.isToastNotificationEnabled) return
         val messageRes = when (action) {
             SkipAction.INTRO -> R.string.toast_skipping_intro
             SkipAction.RECAP -> R.string.toast_skipping_recap

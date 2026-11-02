@@ -34,6 +34,7 @@ class ProviderCard(
                 StreamingProvider.MAX -> "MAX"
                 StreamingProvider.DISNEY_PLUS -> "D+"
                 StreamingProvider.YOUTUBE -> "YT"
+                StreamingProvider.GLOBOPLAY -> "GLO"
             }
             val brandBadge = AntTheme.createBadge(
                 context = context,

@@ -557,7 +557,9 @@ class SleepTimerCard(
         val intent = Intent(context, SleepTimerService::class.java).apply {
             this.action = action
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (action == SleepTimerService.ACTION_STOP) {
+            context.startService(intent)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
         } else {
             context.startService(intent)

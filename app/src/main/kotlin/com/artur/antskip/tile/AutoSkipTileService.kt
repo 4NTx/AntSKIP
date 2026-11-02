@@ -50,6 +50,7 @@ class AutoSkipTileService : TileService() {
         val tile = qsTile ?: return
         val isServiceRunning = AntSkipAccessibilityService.instance != null
         val isEnabled = preferences.isAutomationEnabled
+        val isScheduleActive = preferences.isScheduleActiveNow()
 
         if (!isServiceRunning) {
             tile.state = Tile.STATE_INACTIVE
@@ -57,17 +58,23 @@ class AutoSkipTileService : TileService() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle = "Toque p/ ativar serviço"
             }
-        } else if (isEnabled) {
-            tile.state = Tile.STATE_ACTIVE
-            tile.label = "AntSKIP"
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                tile.subtitle = "Pular ativo"
-            }
-        } else {
+        } else if (!isEnabled) {
             tile.state = Tile.STATE_INACTIVE
             tile.label = "AntSKIP"
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle = "Pausado"
+            }
+        } else if (!isScheduleActive) {
+            tile.state = Tile.STATE_INACTIVE
+            tile.label = "AntSKIP"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                tile.subtitle = "Fora do horário"
+            }
+        } else {
+            tile.state = Tile.STATE_ACTIVE
+            tile.label = "AntSKIP"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                tile.subtitle = "Pular ativo"
             }
         }
         tile.updateTile()

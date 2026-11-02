@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <queries>
         <package android:name="com.netflix.mediaclient" />
@@ -21,6 +23,7 @@
         <package android:name="com.disney.disneyplus" />
         <package android:name="com.google.android.youtube" />
         <package android:name="com.google.android.youtube.tv" />
+        <package android:name="com.globo.globotv" />
     </queries>
 
     <application
@@ -81,6 +84,15 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
         </service>
+
+        <receiver
+            android:name=".schedule.ScheduleAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.artur.antskip.ACTION_TRIGGER_SLEEP_ROUTINE" />
+            </intent-filter>
+        </receiver>
 
     </application>
 </manifest>

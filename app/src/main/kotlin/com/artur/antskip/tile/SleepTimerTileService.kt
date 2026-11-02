@@ -23,11 +23,7 @@ class SleepTimerTileService : TileService() {
             val stopIntent = Intent(this, SleepTimerService::class.java).apply {
                 action = SleepTimerService.ACTION_STOP
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(stopIntent)
-            } else {
-                startService(stopIntent)
-            }
+            startService(stopIntent)
         } else {
             val durationMinutes = preferences.sleepTimerDurationMinutes
             val startIntent = Intent(this, SleepTimerService::class.java).apply {

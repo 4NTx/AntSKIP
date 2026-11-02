@@ -66,6 +66,13 @@ enum class StreamingProvider(
         packageAliases = setOf(
             "com.google.android.youtube.tv",
         ),
+    ),
+    GLOBOPLAY(
+        preferenceKey = "provider_globoplay_enabled",
+        label = "Globoplay",
+        packageName = "com.globo.globotv",
+        enabledByDefault = true,
+        brandColor = 0xFFFB1543.toInt(),
     );
 
     val allPackages: Set<String>

@@ -1,12 +1,18 @@
 package com.artur.antskip.ui.components
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Typeface
+import android.net.Uri
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import com.artur.antskip.ui.theme.AntTheme
 
 class QuickToolsSection(
@@ -38,6 +44,35 @@ class QuickToolsSection(
                     title = "Logs e Diagnóstico",
                     subtitle = "Histórico de cliques e status do serviço",
                     onClick = onOpenDiagnostics,
+                ),
+            )
+            addView(AntTheme.divider(context))
+            addView(
+                toolRow(
+                    tag = "BAT",
+                    title = "Execução em 2º Plano",
+                    subtitle = "Evitar que Xiaomi/Samsung matem o app de noite",
+                    onClick = {
+                        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && powerManager != null) {
+                            if (!powerManager.isIgnoringBatteryOptimizations(context.packageName)) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                        data = Uri.parse("package:${context.packageName}")
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    val fallback = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    context.startActivity(fallback)
+                                }
+                            } else {
+                                Toast.makeText(context, "O AntSKIP já está liberado de restrições de bateria!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
                 ),
             )
             addView(AntTheme.divider(context))
