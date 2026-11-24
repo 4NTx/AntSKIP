@@ -20,20 +20,26 @@ class SleepTimerTileService : TileService() {
     override fun onClick() {
         super.onClick()
         if (SleepTimerService.isRunning) {
+            SleepTimerService.markOptimisticStop()
             val stopIntent = Intent(this, SleepTimerService::class.java).apply {
                 action = SleepTimerService.ACTION_STOP
             }
             startService(stopIntent)
         } else {
-            val durationMinutes = preferences.sleepTimerDurationMinutes
+            val durationSeconds = preferences.sleepTimerDurationMinutes * 60L
+            SleepTimerService.markOptimisticStart(durationSeconds)
             val startIntent = Intent(this, SleepTimerService::class.java).apply {
                 action = SleepTimerService.ACTION_START
-                putExtra(SleepTimerService.EXTRA_DURATION_SECONDS, durationMinutes * 60L)
+                putExtra(SleepTimerService.EXTRA_DURATION_SECONDS, durationSeconds)
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(startIntent)
-            } else {
-                startService(startIntent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(startIntent)
+                } else {
+                    startService(startIntent)
+                }
+            } catch (_: Exception) {
+                SleepTimerService.revertOptimisticStart()
             }
         }
         updateTileState()

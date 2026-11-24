@@ -6,10 +6,16 @@ import com.artur.antskip.domain.StreamingProvider
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class PreferenceStore(context: Context) {
+interface SkipSettings {
+    val isAutomationEnabled: Boolean
+    fun isActionEnabled(action: SkipAction): Boolean
+    fun isProviderEnabled(provider: StreamingProvider): Boolean
+}
+
+class PreferenceStore(context: Context) : SkipSettings {
     private val preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
 
-    val isAutomationEnabled: Boolean
+    override val isAutomationEnabled: Boolean
         get() = try {
             preferences.getBoolean(KEY_AUTOMATION_ENABLED, true)
         } catch (_: Exception) {
@@ -20,7 +26,7 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(KEY_AUTOMATION_ENABLED, enabled).apply()
     }
 
-    fun isActionEnabled(action: SkipAction): Boolean =
+    override fun isActionEnabled(action: SkipAction): Boolean =
         try {
             preferences.getBoolean(action.preferenceKey, action.enabledByDefault)
         } catch (_: Exception) {
@@ -31,7 +37,7 @@ class PreferenceStore(context: Context) {
         preferences.edit().putBoolean(action.preferenceKey, enabled).apply()
     }
 
-    fun isProviderEnabled(provider: StreamingProvider): Boolean =
+    override fun isProviderEnabled(provider: StreamingProvider): Boolean =
         try {
             preferences.getBoolean(provider.preferenceKey, provider.enabledByDefault)
         } catch (_: Exception) {

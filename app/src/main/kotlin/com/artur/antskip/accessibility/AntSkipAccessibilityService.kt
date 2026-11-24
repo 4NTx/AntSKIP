@@ -24,6 +24,8 @@ class AntSkipAccessibilityService : AccessibilityService() {
     private val matcher by lazy { SkipMatcher(preferences) }
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
     private var lastClickAtMillis = 0L
+    private var lastTargetSignature: String? = null
+    private var lastSameTargetClickAtMillis = 0L
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -77,6 +79,10 @@ class AntSkipAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow ?: return
 
         val match = matcher.findTarget(root, provider) ?: return
+        val signature = buildTargetSignature(provider, match)
+        if (signature == lastTargetSignature && now - lastSameTargetClickAtMillis < SAME_TARGET_COOLDOWN_MS) {
+            return
+        }
 
         val standardClicked = match.targets.any { it.performAction(AccessibilityNodeInfo.ACTION_CLICK) }
         val gestureClicked = !standardClicked && canUseGestureFallback(match) && tapBounds(provider, match.action, match.gestureBounds)
@@ -84,12 +90,17 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
         if (success) {
             lastClickAtMillis = now
+            lastTargetSignature = signature
+            lastSameTargetClickAtMillis = now
             preferences.appendDiagnosticLog("PULOU ${match.action.label} no ${provider.label} ('${match.matchedText}')")
             showSkipToast(match.action)
         } else if (match.targets.isNotEmpty() || gestureClicked) {
             preferences.appendDiagnosticLog("Falha ao tocar em: ${match.action.label} no ${provider.label} ('${match.matchedText}')")
         }
     }
+
+    private fun buildTargetSignature(provider: StreamingProvider, match: SkipMatcher.MatchResult): String =
+        "${provider.name}|${match.action.name}|${match.matchedText}|${match.gestureBounds.flattenToString()}"
 
     override fun onInterrupt() = Unit
 
@@ -130,6 +141,7 @@ class AntSkipAccessibilityService : AccessibilityService() {
 
         private const val SERVICE_NOTIFICATION_TIMEOUT_MS = 100L
         private const val CLICK_COOLDOWN_MS = 2_000L
+        private const val SAME_TARGET_COOLDOWN_MS = 10_000L
         private const val GESTURE_TAP_DURATION_MS = 60L
     }
 }

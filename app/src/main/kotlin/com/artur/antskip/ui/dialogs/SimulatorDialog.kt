@@ -15,7 +15,6 @@ import android.widget.TextView
 import com.artur.antskip.data.PreferenceStore
 import com.artur.antskip.domain.StreamingProvider
 import com.artur.antskip.matcher.SkipMatcher
-import com.artur.antskip.matcher.SkipPhraseBank
 import com.artur.antskip.matcher.normalizeForMatch
 import com.artur.antskip.ui.theme.AntTheme
 
@@ -145,7 +144,7 @@ class SimulatorDialog(
                     return@setOnClickListener
                 }
 
-                val matchedAction = SkipPhraseBank.match(normalized)
+                val matchedAction = matcher.simulateText(entered, provider)
                 if (matchedAction == null) {
                     resultText.text = "Não reconhecido: Nenhuma regra encontrada para '$entered'."
                     resultText.setTextColor(AntTheme.DANGER_TEXT)

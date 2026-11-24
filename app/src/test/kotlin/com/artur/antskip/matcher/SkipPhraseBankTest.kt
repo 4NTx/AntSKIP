@@ -65,4 +65,16 @@ class SkipPhraseBankTest {
         assertNull(SkipPhraseBank.match("Volume 100%"))
         assertNull(SkipPhraseBank.match("Configurações"))
     }
+
+    @Test
+    fun testFalsePositivesAreRejected() {
+        assertNull(SkipPhraseBank.match("Boruto: Naruto Next Generations"))
+        assertNull(SkipPhraseBank.match("boruto naruto next generations"))
+        assertNull(SkipPhraseBank.match("Fechar próximo popup"))
+        assertNull(SkipPhraseBank.match("Close next episode popup"))
+        assertNull(SkipPhraseBank.match("Cancelar próximo episódio"))
+        assertNull(SkipPhraseBank.match("Próximo"))
+        assertNull(SkipPhraseBank.match("Next"))
+        assertNull(SkipPhraseBank.match("Episódio anterior"))
+    }
 }

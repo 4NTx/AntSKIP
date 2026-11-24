@@ -28,9 +28,25 @@ class SleepTimerCard(
     private val onStateChanged: () -> Unit,
 ) {
     private var selectedMinutes = preferences.sleepTimerDurationMinutes
+    private var cardRoot: LinearLayout? = null
+    private var dynamicContainerRef: LinearLayout? = null
+    private var refreshContentAction: (() -> Unit)? = null
+
+    fun refreshIfNeeded() {
+        val container = dynamicContainerRef ?: return
+        val showingRunning = container.findViewWithTag<TextView>("countdown_text") != null
+        if (showingRunning != SleepTimerService.isRunning) {
+            refreshContentAction?.invoke()
+        } else if (showingRunning) {
+            container.findViewWithTag<TextView>("countdown_text")?.text =
+                SleepTimerService.formatSeconds(SleepTimerService.remainingSeconds)
+            updateProgressBar(container, SleepTimerService.remainingSeconds)
+        }
+    }
 
     fun createView(): LinearLayout =
         LinearLayout(context).apply {
+            cardRoot = this
             orientation = LinearLayout.VERTICAL
             setPadding(AntTheme.dp(context, 16), AntTheme.dp(context, 16), AntTheme.dp(context, 16), AntTheme.dp(context, 16))
             background = AntTheme.rounded(AntTheme.CARD_SURFACE, 14f, AntTheme.CARD_BORDER, 1, context)
@@ -107,6 +123,7 @@ class SleepTimerCard(
                 }
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             }
+            dynamicContainerRef = dynamicContainer
 
             fun updateContent() {
                 dynamicContainer.removeAllViews()
@@ -119,6 +136,7 @@ class SleepTimerCard(
                     renderIdleState(dynamicContainer) { updateContent(); onStateChanged() }
                 }
             }
+            refreshContentAction = { updateContent() }
 
             updateContent()
 
@@ -126,24 +144,16 @@ class SleepTimerCard(
                 (context as? android.app.Activity)?.runOnUiThread {
                     if (SleepTimerService.isRunning) {
                         val countView = dynamicContainer.findViewWithTag<TextView>("countdown_text")
-                        countView?.text = SleepTimerService.formatSeconds(remaining)
-
-                        val progressBar = dynamicContainer.findViewWithTag<View>("timer_progress_bar")
-                        val total = SleepTimerService.totalDurationSeconds
-                        if (progressBar != null && total > 0) {
-                            val ratio = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
-                            val parent = progressBar.parent as? LinearLayout
-                            parent?.let { p ->
-                                val totalWidth = p.width
-                                if (totalWidth > 0) {
-                                    val lp = progressBar.layoutParams
-                                    lp.width = (totalWidth * ratio).toInt()
-                                    progressBar.layoutParams = lp
-                                }
-                            }
+                        if (countView == null) {
+                            updateContent()
+                            onStateChanged()
+                        } else {
+                            countView.text = SleepTimerService.formatSeconds(remaining)
+                            updateProgressBar(dynamicContainer, remaining)
                         }
-                    } else {
+                    } else if (dynamicContainer.findViewWithTag<TextView>("countdown_text") != null) {
                         updateContent()
+                        onStateChanged()
                     }
                 }
             }
@@ -157,6 +167,30 @@ class SleepTimerCard(
 
             addView(dynamicContainer)
         }
+
+    private fun updateProgressBar(container: LinearLayout, remaining: Long) {
+        val progressBar = container.findViewWithTag<View>("timer_progress_bar") ?: return
+        val total = SleepTimerService.totalDurationSeconds
+        if (total <= 0L) return
+        val ratio = (remaining.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+        val parent = progressBar.parent as? LinearLayout ?: return
+        val applyWidth = {
+            val totalWidth = parent.width
+            if (totalWidth > 0) {
+                val lp = progressBar.layoutParams
+                val targetWidth = (totalWidth * ratio).toInt()
+                if (lp.width != targetWidth) {
+                    lp.width = targetWidth
+                    progressBar.layoutParams = lp
+                }
+            }
+        }
+        if (parent.width > 0) {
+            applyWidth()
+        } else {
+            parent.post(applyWidth)
+        }
+    }
 
     private fun renderRunningState(container: LinearLayout, onRefresh: () -> Unit) {
         val timerDisplay = LinearLayout(context).apply {
@@ -255,6 +289,7 @@ class SleepTimerCard(
                 layoutParams = LinearLayout.LayoutParams(0, AntTheme.dp(context, 42), 1.1f)
                 AntTheme.addPressFeedback(this)
                 setOnClickListener {
+                    SleepTimerService.markOptimisticStop()
                     sendServiceIntent(SleepTimerService.ACTION_STOP)
                     onRefresh()
                 }
@@ -267,6 +302,7 @@ class SleepTimerCard(
 
         container.addView(timerDisplay)
         container.addView(buttonsRow)
+        updateProgressBar(container, SleepTimerService.remainingSeconds)
     }
 
     private fun renderIdleState(container: LinearLayout, onRefresh: () -> Unit) {
@@ -330,7 +366,11 @@ class SleepTimerCard(
             layoutParams = bParams
             AntTheme.addPressFeedback(this)
             setOnClickListener {
-                startSleepTimer(selectedMinutes * 60L)
+                val durationSeconds = selectedMinutes * 60L
+                SleepTimerService.markOptimisticStart(durationSeconds)
+                if (!startSleepTimer(durationSeconds)) {
+                    SleepTimerService.revertOptimisticStart()
+                }
                 onRefresh()
             }
         }
@@ -792,17 +832,21 @@ class SleepTimerCard(
         container.addView(note)
     }
 
-    private fun startSleepTimer(durationSeconds: Long) {
-        val intent = Intent(context, SleepTimerService::class.java).apply {
-            action = SleepTimerService.ACTION_START
-            putExtra(SleepTimerService.EXTRA_DURATION_SECONDS, durationSeconds)
+    private fun startSleepTimer(durationSeconds: Long): Boolean =
+        try {
+            val intent = Intent(context, SleepTimerService::class.java).apply {
+                action = SleepTimerService.ACTION_START
+                putExtra(SleepTimerService.EXTRA_DURATION_SECONDS, durationSeconds)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+            true
+        } catch (_: Exception) {
+            false
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
-    }
 
     private fun sendServiceIntent(action: String) {
         val intent = Intent(context, SleepTimerService::class.java).apply {

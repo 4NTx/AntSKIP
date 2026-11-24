@@ -115,6 +115,7 @@ class SleepTimerService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 val durationSec = intent.getLongExtra(EXTRA_DURATION_SECONDS, 15 * 60L)
+                totalDurationSeconds = durationSec
                 startTimer(durationSec)
             }
             ACTION_ADD_TIME -> {
@@ -500,6 +501,25 @@ class SleepTimerService : Service() {
 
         var onTickListener: ((Long) -> Unit)? = null
         var onFinishListener: (() -> Unit)? = null
+
+        fun markOptimisticStart(durationSeconds: Long) {
+            val safeDuration = maxOf(1L, durationSeconds)
+            remainingSeconds = safeDuration
+            totalDurationSeconds = safeDuration
+            isRunning = true
+        }
+
+        fun revertOptimisticStart() {
+            remainingSeconds = 0L
+            totalDurationSeconds = 0L
+            isRunning = false
+        }
+
+        fun markOptimisticStop() {
+            remainingSeconds = 0L
+            totalDurationSeconds = 0L
+            isRunning = false
+        }
 
         fun formatSeconds(totalSec: Long): String {
             val h = totalSec / 3600

@@ -46,6 +46,9 @@ class MainActivity : Activity() {
 
     private lateinit var heroCard: HeroStatusCard
     private lateinit var headerStatusBadge: TextView
+    private var sleepTimerCard: SleepTimerCard? = null
+    private var ownedTickListener: ((Long) -> Unit)? = null
+    private var ownedFinishListener: (() -> Unit)? = null
     private var isViewBuilt = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,8 +70,12 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        SleepTimerService.onTickListener = null
-        SleepTimerService.onFinishListener = null
+        if (SleepTimerService.onTickListener === ownedTickListener) {
+            SleepTimerService.onTickListener = null
+        }
+        if (SleepTimerService.onFinishListener === ownedFinishListener) {
+            SleepTimerService.onFinishListener = null
+        }
     }
 
     private fun render() {
@@ -166,12 +173,15 @@ class MainActivity : Activity() {
         rootLayout.addView(heroView)
 
         // 3. Sleep Timer Card (com início manual e agendamento automático)
-        val sleepTimerCard = SleepTimerCard(
+        val timerCard = SleepTimerCard(
             context = this,
             preferences = preferences,
             onStateChanged = { updateStatus() },
         )
-        rootLayout.addView(sleepTimerCard.createView())
+        sleepTimerCard = timerCard
+        rootLayout.addView(timerCard.createView())
+        ownedTickListener = SleepTimerService.onTickListener
+        ownedFinishListener = SleepTimerService.onFinishListener
 
         // 4. Section: Aplicativos (Grouped Card)
         rootLayout.addView(createSectionTitle("APLICATIVOS SUPORTADOS"))
@@ -328,6 +338,7 @@ class MainActivity : Activity() {
             val totalProviders = StreamingProvider.entries.size
 
             heroCard.updateState(isServiceEnabled, isAutomationEnabled, activeProviders, totalProviders)
+            sleepTimerCard?.refreshIfNeeded()
 
             headerStatusBadge.animate().cancel()
             headerStatusBadge.scaleX = 1f

@@ -12,8 +12,15 @@ object SkipPhraseBank {
         "salta",
     )
 
+    private val exactNextEpisodePhrases = normalizedSet(
+        "watch next",
+        "up next",
+        "next up",
+    )
+
     private val exactPhrases: Map<SkipAction, Set<String>> = mapOf(
         SkipAction.INTRO to genericIntroPhrases,
+        SkipAction.NEXT_EPISODE to exactNextEpisodePhrases,
     )
 
     private val phrases: Map<SkipAction, Set<String>> = mapOf(
@@ -215,10 +222,6 @@ object SkipPhraseBank {
             "próximo episódio",
             "proximo ep",
             "próximo ep",
-            "proximo:",
-            "proximo :",
-            "próximo:",
-            "próximo :",
             "proximo capitulo",
             "próximo capítulo",
             "proxima parte",
@@ -234,19 +237,11 @@ object SkipPhraseBank {
             // English
             "next episode",
             "next episode in",
-            "next:",
-            "next :",
-            "up next:",
-            "up next :",
-            "next up:",
-            "next up :",
             "play next",
             "play next episode",
             "watch next episode",
             "watch next up",
-            "next up",
-            "watch next",
-            "up next",
+            "up next in",
             // Spanish
             "episodio siguiente",
             "siguiente episodio",
@@ -278,14 +273,57 @@ object SkipPhraseBank {
         ),
     )
 
+    private const val MAX_BUTTON_TEXT_LENGTH = 72
+
+    private val dismissWords = setOf(
+        "fechar",
+        "close",
+        "cancelar",
+        "cancel",
+        "dispensar",
+        "dismiss",
+        "ocultar",
+        "hide",
+        "recusar",
+        "decline",
+        "anterior",
+        "previous",
+    )
+
     fun match(text: String): SkipAction? {
         if (text.isBlank()) return null
-        val relaxed = text.replace('-', ' ')
+        val relaxed = text.normalizeForMatch().replace('-', ' ')
+        if (relaxed.isBlank() || relaxed.length > MAX_BUTTON_TEXT_LENGTH) return null
+        if (containsAnyWord(relaxed, dismissWords)) return null
+
         exactPhrases.entries.firstOrNull { (_, patterns) -> relaxed in patterns }?.let { return it.key }
         return phrases.entries.firstOrNull { (_, patterns) ->
-            patterns.any { pattern -> relaxed == pattern || relaxed.contains(pattern) }
+            patterns.any { pattern -> containsWholePhrase(relaxed, pattern) }
         }?.key
     }
+
+    internal fun containsWholePhrase(text: String, pattern: String): Boolean {
+        if (text == pattern) return true
+        if (!isAsciiLike(pattern)) {
+            return text.contains(pattern)
+        }
+        var startIndex = 0
+        while (true) {
+            val idx = text.indexOf(pattern, startIndex)
+            if (idx < 0) return false
+            val validStart = idx == 0 || text[idx - 1] == ' '
+            val endIdx = idx + pattern.length
+            val validEnd = endIdx == text.length || text[endIdx] == ' '
+            if (validStart && validEnd) return true
+            startIndex = idx + 1
+        }
+    }
+
+    internal fun containsAnyWord(text: String, words: Set<String>): Boolean =
+        words.any { word -> containsWholePhrase(text, word) }
+
+    private fun isAsciiLike(value: String): Boolean =
+        value.all { it.code < 128 }
 
     private fun normalizedSet(vararg values: String): Set<String> =
         values.mapTo(linkedSetOf()) { it.normalizeForMatch() }
